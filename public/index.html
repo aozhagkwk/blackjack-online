@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>블랙잭 온라인</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@500;700;800&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="cabinet">
+
+    <!-- 시작 화면 -->
+    <section id="screen-start" class="screen">
+      <div class="brand">블랙잭 <span class="num">ONLINE</span></div>
+      <p class="tagline">2인용 실시간 블랙잭 · 방장은 딜러, 플레이어는 배팅</p>
+
+      <div class="start-card">
+        <div class="start-block">
+          <label class="start-label">방 만들기 (방장 / 딜러)</label>
+          <div class="chips-input-row">
+            <span class="won-prefix">₩</span>
+            <input id="input-starting-chips" type="number" min="50000" step="10000" value="50000" />
+          </div>
+          <p class="hint-text">플레이어 시작 금액 (최소 50,000원)</p>
+          <button id="btn-create" class="btn btn-primary">방 만들기</button>
+        </div>
+
+        <div class="divider"><span>또는</span></div>
+
+        <div class="start-block">
+          <label class="start-label">코드로 입장 (플레이어)</label>
+          <input id="input-code" type="text" maxlength="4" placeholder="방 코드 입력" autocomplete="off" />
+          <button id="btn-join" class="btn btn-secondary">입장하기</button>
+        </div>
+      </div>
+      <p id="start-error" class="error-text"></p>
+    </section>
+
+    <!-- 대기 / 게임 화면 -->
+    <section id="screen-game" class="screen hidden">
+      <div class="brand-row">
+        <div class="brand">블랙잭 <span class="num">ONLINE</span></div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="room-code">코드 <b id="room-code-display">----</b></span>
+          <span id="role-badge" class="role-badge"></span>
+        </div>
+      </div>
+
+      <div class="display-panel">
+        <div class="readout">
+          <span class="readout-label">보유 칩</span>
+          <span class="readout-value" id="chips-display">0</span>
+        </div>
+        <div class="readout right">
+          <span class="readout-label">현재 배팅</span>
+          <span class="readout-value small" id="bet-display">0</span>
+        </div>
+      </div>
+
+      <div class="table" id="table">
+        <div class="table-print">
+          <span class="big">BLACKJACK PAYS 3 TO 2</span>
+          <span class="small">DEALER MUST STAND ON 17</span>
+          <span class="limit" id="buyin-line">시작 금액 50,000원 · 2배 달성 시 칩 교환 가능</span>
+        </div>
+
+        <div class="table-zone">
+          <div class="zone-label">DEALER <span class="score-chip" id="dealer-value">&nbsp;</span></div>
+          <div id="dealer-cards" class="hand-row"></div>
+        </div>
+
+        <div class="table-filler"></div>
+
+        <div class="table-zone">
+          <div class="zone-label">PLAYER <span class="score-chip" id="player-value">&nbsp;</span></div>
+          <div id="player-cards" class="hand-row"></div>
+        </div>
+
+        <div class="banner" id="banner"><div class="banner-text" id="banner-text"></div></div>
+
+        <div class="modal-prompt" id="gameover-modal">
+          <div class="title" id="gameover-title">게임 종료</div>
+          <p id="gameover-desc"></p>
+          <div class="modal-btns">
+            <button class="btn primary" id="btn-home"><span>홈으로</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dock">
+        <!-- 방장 전용 -->
+        <div id="host-panel" class="control-panel hidden">
+          <p class="host-note">방장은 딜러입니다. 별도 조작 없이 자동으로 진행됩니다.</p>
+        </div>
+
+        <!-- 플레이어: 배팅 -->
+        <div id="bet-panel" class="control-panel hidden">
+          <div class="chip-tray" id="chip-tray"></div>
+          <div class="bet-input-row">
+            <input id="input-bet" type="number" min="1" step="1000" placeholder="배팅 금액" />
+            <button id="btn-clear-bet" class="mini-btn">지우기</button>
+          </div>
+          <button id="btn-bet" class="btn btn-primary">DEAL · 배팅하고 시작</button>
+          <button id="btn-cashout" class="btn btn-accent hidden">칩 교환 (게임 종료)</button>
+        </div>
+
+        <!-- 플레이어: 히트/스탠드 -->
+        <div id="action-panel" class="control-panel hidden">
+          <div class="btn-row">
+            <button id="btn-hit" class="btn"><span>Hit</span><small>히트</small></button>
+            <button id="btn-stand" class="btn"><span>Stand</span><small>스탠드</small></button>
+            <button id="btn-double" class="btn"><span>Double</span><small>더블다운</small></button>
+          </div>
+        </div>
+      </div>
+
+      <p id="game-error" class="error-text"></p>
+    </section>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>

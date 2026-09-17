@@ -1,0 +1,13 @@
+{
+  "name": "blackjack-online",
+  "version": "1.0.0",
+  "description": "2인용 실시간 멀티플레이 블랙잭 (방장=딜러, 플레이어=배팅)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
