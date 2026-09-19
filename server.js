@@ -114,6 +114,17 @@ io.on('connection', (socket) => {
     broadcastState(room);
   });
 
+  socket.on('peekDealerCard', () => {
+    const room = getRoomFor(socket, 'host');
+    if (!room) return;
+    const result = room.peekDealerCard();
+    if (!result.ok) {
+      socket.emit('actionError', result.error);
+      return;
+    }
+    broadcastState(room);
+  });
+
   socket.on('cashOut', () => {
     const room = getRoomFor(socket, 'player');
     if (!room) return;

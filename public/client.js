@@ -31,6 +31,8 @@ const actionPanel = document.getElementById('action-panel');
 const inputBet = document.getElementById('input-bet');
 const chipTray = document.getElementById('chip-tray');
 const btnCashout = document.getElementById('btn-cashout');
+const btnPeek = document.getElementById('btn-peek');
+const playerBetChip = document.getElementById('player-bet-chip');
 
 let startingChipsCache = 50000;
 let currentTurnDeadline = null;
@@ -149,6 +151,11 @@ document.getElementById('btn-double').addEventListener('click', () => {
 btnCashout.addEventListener('click', () => {
   clearErrors();
   socket.emit('cashOut');
+});
+
+btnPeek.addEventListener('click', () => {
+  clearErrors();
+  socket.emit('peekDealerCard');
 });
 
 document.getElementById('btn-home').addEventListener('click', () => {
@@ -387,8 +394,17 @@ function render(state) {
 
   if (state.role === 'host') {
     hostPanel.classList.remove('hidden');
+    if (state.bet > 0) {
+      playerBetChip.textContent = `배팅 ${fmt(state.bet)}`;
+      playerBetChip.classList.remove('hidden');
+    } else {
+      playerBetChip.classList.add('hidden');
+    }
+    const hasHiddenCard = state.dealerHand.some((c) => c.hidden);
+    btnPeek.classList.toggle('hidden', !hasHiddenCard);
     return;
   }
+  playerBetChip.classList.add('hidden');
 
   // 플레이어 화면
   if (state.phase === 'betting' || state.phase === 'result') {

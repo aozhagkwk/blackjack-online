@@ -75,7 +75,7 @@
         <div class="table-filler"></div>
 
         <div class="table-zone" id="player-zone">
-          <div class="zone-label">PLAYER <span class="score-chip" id="player-value">&nbsp;</span></div>
+          <div class="zone-label">PLAYER <span class="score-chip" id="player-value">&nbsp;</span><span class="score-chip bet-chip hidden" id="player-bet-chip"></span></div>
           <div id="player-cards" class="hand-row"></div>
         </div>
 
@@ -93,7 +93,8 @@
       <div class="dock">
         <!-- 방장 전용 -->
         <div id="host-panel" class="control-panel hidden">
-          <p class="host-note">방장은 딜러입니다. 별도 조작 없이 자동으로 진행됩니다.</p>
+          <button id="btn-peek" class="btn btn-primary hidden">내 카드 보기</button>
+          <p class="host-note">방장은 딜러입니다. 배팅/히트/스탠드 등의 조작은 없습니다.</p>
         </div>
 
         <!-- 플레이어: 배팅 -->

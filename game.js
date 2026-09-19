@@ -74,6 +74,7 @@ class Room {
     this.canDouble = false;
     this.finalOutcome = null; // 'player' | 'dealer'
     this.dealerHoleRevealed = false;
+    this.hostPeeked = false; // 방장이 "내 카드 보기"로 직접 확인했는지 (플레이어에게는 영향 없음)
     this._roundStartChips = startingChips;
     this.turnTimer = null;
     this.turnDeadline = null;
@@ -106,6 +107,15 @@ class Room {
     this.playerId = playerId;
     this.phase = 'betting';
     this.message = '배팅해주세요.';
+  }
+
+  peekDealerCard() {
+    if (this.dealerHand.length < 2) {
+      return { ok: false, error: '아직 확인할 카드가 없습니다.' };
+    }
+    this.hostPeeked = true;
+    this._emit();
+    return { ok: true };
   }
 
   cashOut() {
@@ -148,6 +158,7 @@ class Room {
     this.playerHand = [];
     this.dealerHand = [];
     this.dealerHoleRevealed = false;
+    this.hostPeeked = false;
     this._emit();
 
     const order = ['player', 'dealer', 'player', 'dealer'];
@@ -293,7 +304,8 @@ class Room {
 
   getState(role) {
     const isHost = role === 'host';
-    const dealerHiddenHole = !isHost && this.dealerHand.length > 1 && !this.dealerHoleRevealed;
+    const revealedForRole = this.dealerHoleRevealed || (isHost && this.hostPeeked);
+    const dealerHiddenHole = this.dealerHand.length > 1 && !revealedForRole;
     const dealerHand = this.dealerHand.map((card, idx) => {
       if (dealerHiddenHole && idx === 1) {
         return { hidden: true };

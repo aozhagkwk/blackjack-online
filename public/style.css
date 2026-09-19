@@ -268,6 +268,10 @@ input#input-code{
   min-width:20px;
   text-align:center;
 }
+.score-chip.bet-chip{
+  border-color:var(--amber-500);
+  color:var(--amber-500);
+}
 
 .hand-row{ display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; min-height:78px; }
 
