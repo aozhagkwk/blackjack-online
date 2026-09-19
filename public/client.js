@@ -14,6 +14,7 @@ const dealerValueEl = document.getElementById('dealer-value');
 const playerValueEl = document.getElementById('player-value');
 const chipsLabel = document.getElementById('chips-label');
 const chipsDisplay = document.getElementById('chips-display');
+const chipsDelta = document.getElementById('chips-delta');
 const betLabel = document.getElementById('bet-label');
 const betDisplay = document.getElementById('bet-display');
 const buyinLine = document.getElementById('buyin-line');
@@ -204,26 +205,72 @@ function suitClass(suit) {
   return suit === '♥' || suit === '♦' ? 'red' : '';
 }
 
-function renderCards(container, hand) {
-  container.innerHTML = '';
-  hand.forEach((card, idx) => {
-    const el = document.createElement('div');
-    el.style.animationDelay = `${idx * 450}ms`;
-    if (card.hidden) {
-      el.className = 'card hidden-card';
-    } else {
-      el.className = `card ${suitClass(card.suit)}`;
-      el.innerHTML =
-        `<div class="corner"><span>${card.rank}</span><span>${card.suit}</span></div>` +
-        `<div class="pip">${card.suit}</div>` +
-        `<div class="corner br"><span>${card.rank}</span><span>${card.suit}</span></div>`;
+function cardSignature(card) {
+  return card.hidden ? 'hidden' : `${card.rank}${card.suit}`;
+}
+
+function buildCardEl(card) {
+  const el = document.createElement('div');
+  if (card.hidden) {
+    el.className = 'card hidden-card';
+  } else {
+    el.className = `card ${suitClass(card.suit)}`;
+    el.innerHTML =
+      `<div class="corner"><span>${card.rank}</span><span>${card.suit}</span></div>` +
+      `<div class="pip">${card.suit}</div>` +
+      `<div class="corner br"><span>${card.rank}</span><span>${card.suit}</span></div>`;
+  }
+  return el;
+}
+
+// 이미 놓인 카드는 그대로 두고, 새로 추가되거나(슬라이드 인) 공개된(뒤집기) 카드만 움직인다.
+const cardCache = { dealer: [], player: [] };
+function renderCards(container, hand, cacheKey) {
+  const prevSigs = cardCache[cacheKey];
+  const newSigs = hand.map(cardSignature);
+
+  if (hand.length < prevSigs.length) {
+    // 새 라운드 등으로 손패 수가 줄었으면 통째로 다시 그린다.
+    container.innerHTML = '';
+    hand.forEach((card, idx) => {
+      const el = buildCardEl(card);
+      el.classList.add('card-enter');
+      el.style.animationDelay = `${idx * 250}ms`;
+      container.appendChild(el);
+    });
+    cardCache[cacheKey] = newSigs;
+    return;
+  }
+
+  for (let i = 0; i < prevSigs.length; i++) {
+    if (prevSigs[i] !== newSigs[i]) {
+      const el = buildCardEl(hand[i]);
+      el.classList.add('card-flip');
+      const existing = container.children[i];
+      if (existing) existing.replaceWith(el);
+      else container.appendChild(el);
     }
+  }
+
+  for (let i = prevSigs.length; i < hand.length; i++) {
+    const el = buildCardEl(hand[i]);
+    el.classList.add('card-enter');
+    el.style.animationDelay = `${(i - prevSigs.length) * 250}ms`;
     container.appendChild(el);
-  });
+  }
+
+  cardCache[cacheKey] = newSigs;
 }
 
 function fmt(n) {
   return Number(n || 0).toLocaleString('ko-KR');
+}
+
+function setDelta(delta) {
+  const cls = delta > 0 ? '' : delta < 0 ? 'loss' : 'zero';
+  const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
+  chipsDelta.className = `readout-delta ${cls}`;
+  chipsDelta.textContent = `${sign}${fmt(Math.abs(delta))}`;
 }
 
 function showBanner(text, sub) {
@@ -274,8 +321,8 @@ function render(state) {
   prevDealerCount = newDealerCount;
   prevPlayerCount = newPlayerCount;
 
-  renderCards(dealerCards, state.dealerHand);
-  renderCards(playerCards, state.playerHand);
+  renderCards(dealerCards, state.dealerHand, 'dealer');
+  renderCards(playerCards, state.playerHand, 'player');
 
   dealerValueEl.textContent = state.dealerValue !== null ? state.dealerValue : ' ';
   playerValueEl.textContent = state.playerHand.length ? state.playerValue : ' ';
@@ -283,15 +330,17 @@ function render(state) {
   if (state.role === 'host') {
     chipsLabel.textContent = '딜러 보유 칩';
     chipsDisplay.textContent = fmt(state.dealerChips);
-    chipsDisplay.style.color = state.dealerChips < state.startingChips * 10 ? '#ff8b7d' : '';
+    chipsDisplay.style.color = '';
     betLabel.textContent = '플레이어 보유 칩';
     betDisplay.textContent = fmt(state.playerChips);
+    setDelta(state.dealerChips - state.startingChips * 10);
   } else {
     chipsLabel.textContent = '보유 칩';
     chipsDisplay.textContent = fmt(state.playerChips);
     chipsDisplay.style.color = '';
     betLabel.textContent = '현재 배팅';
     betDisplay.textContent = fmt(state.bet);
+    setDelta(state.playerChips - state.startingChips);
   }
   startingChipsCache = state.startingChips || startingChipsCache;
   buyinLine.textContent = `시작 금액 ${fmt(state.startingChips)}원 · 2배(${fmt(state.startingChips * 2)}원) 달성 시 칩 교환 가능`;

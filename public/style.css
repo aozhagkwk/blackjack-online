@@ -196,6 +196,14 @@ input#input-code{
   text-shadow:0 0 8px rgba(255,178,56,.35);
 }
 .readout-value.small{ font-size:16px; }
+.readout-delta{
+  font-family:'Space Mono',monospace;
+  font-size:11px;
+  font-weight:700;
+  color:#8fd6a8;
+}
+.readout-delta.loss{ color:#e08a7d; }
+.readout-delta.zero{ color:#8a8073; }
 
 .table{
   flex:1;
@@ -275,8 +283,9 @@ input#input-code{
   display:flex;
   align-items:center;
   justify-content:center;
-  animation:deal .9s cubic-bezier(.18,.82,.4,1) both;
 }
+.card.card-enter{ animation:cardEnter .5s ease-out both; }
+.card.card-flip{ animation:cardFlip .45s ease-out both; }
 .card.red{ color:var(--red-600); }
 .card .corner{
   position:absolute;
@@ -300,9 +309,13 @@ input#input-code{
   border-radius:4px;
   opacity:.7;
 }
-@keyframes deal{
-  from{ opacity:0; transform:translate(70px,-55px) scale(.85) rotate(10deg); }
-  to{ opacity:1; transform:translate(0,0) scale(1) rotate(0); }
+@keyframes cardEnter{
+  from{ opacity:0; transform:translateX(34px); }
+  to{ opacity:1; transform:translateX(0); }
+}
+@keyframes cardFlip{
+  from{ transform:rotateY(90deg); opacity:.5; }
+  to{ transform:rotateY(0deg); opacity:1; }
 }
 
 .banner{
