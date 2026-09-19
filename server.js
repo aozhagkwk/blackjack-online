@@ -42,6 +42,7 @@ io.on('connection', (socket) => {
     }
     const code = generateRoomCode();
     const room = new Room(code, socket.id, startingChips);
+    room.onUpdate = () => broadcastState(room);
     rooms.set(code, room);
     socket.join(code);
     socket.data.roomCode = code;

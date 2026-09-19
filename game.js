@@ -46,6 +46,16 @@ function isBust(hand) {
   return handValue(hand) > 21;
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// 아주 느리게 — 한 단계씩 또렷하게 보이도록
+const INITIAL_DEAL_INTERVAL = 900; // 초기 카드 한 장씩 나눠주는 간격
+const DEALER_REVEAL_DELAY = 2600; // 히든 카드를 뒤집기 전 대기
+const DEALER_HIT_INTERVAL = 2600; // 딜러가 카드를 한 장씩 받는 간격
+const PRE_RESULT_DELAY = 1800; // 결과 발표 전 대기
+
+const TURN_LIMIT_MS = 15000; // 플레이어 턴 제한시간
+
 class Room {
   constructor(code, hostId, startingChips = 50000) {
     this.code = code;
@@ -56,12 +66,40 @@ class Room {
     this.dealerHand = [];
     this.startingChips = startingChips;
     this.playerChips = startingChips;
+    this.dealerChips = startingChips * 10; // 딜러(방장) 보유 칩 — 플레이어 시작 금액의 10배
     this.bet = 0;
-    // phase: waiting(플레이어 대기) | betting(배팅 대기) | player(플레이어 턴) | dealer(딜러 턴) | result(결과) | gameover(게임 종료)
+    // phase: waiting(플레이어 대기) | betting(배팅 대기) | dealing(카드 분배 중) | player(플레이어 턴) | dealer(딜러 턴) | result(결과) | gameover(게임 종료)
     this.phase = 'waiting';
     this.message = '플레이어를 기다리는 중...';
     this.canDouble = false;
     this.finalOutcome = null; // 'player' | 'dealer'
+    this.dealerHoleRevealed = false;
+    this._roundStartChips = startingChips;
+    this.turnTimer = null;
+    this.turnDeadline = null;
+    this.onUpdate = null; // 상태가 바뀔 때마다 호출되는 브로드캐스트 콜백
+  }
+
+  _emit() {
+    if (this.onUpdate) this.onUpdate();
+  }
+
+  _startTurnTimer() {
+    this._clearTurnTimer();
+    this.turnDeadline = Date.now() + TURN_LIMIT_MS;
+    this.turnTimer = setTimeout(() => {
+      if (this.phase === 'player') {
+        this.stand();
+      }
+    }, TURN_LIMIT_MS);
+  }
+
+  _clearTurnTimer() {
+    if (this.turnTimer) {
+      clearTimeout(this.turnTimer);
+      this.turnTimer = null;
+    }
+    this.turnDeadline = null;
   }
 
   playerJoined(playerId) {
@@ -96,10 +134,31 @@ class Room {
     }
 
     this.bet = amount;
+    this._roundStartChips = this.playerChips;
     this.playerChips -= amount;
+    this.phase = 'dealing';
+    this.message = '카드를 나눠드립니다...';
+    this._dealCards();
+
+    return { ok: true };
+  }
+
+  async _dealCards() {
     this.deck = createShuffledDeck();
-    this.playerHand = [this.deck.pop(), this.deck.pop()];
-    this.dealerHand = [this.deck.pop(), this.deck.pop()];
+    this.playerHand = [];
+    this.dealerHand = [];
+    this.dealerHoleRevealed = false;
+    this._emit();
+
+    const order = ['player', 'dealer', 'player', 'dealer'];
+    for (const who of order) {
+      await sleep(INITIAL_DEAL_INTERVAL);
+      const card = this.deck.pop();
+      if (who === 'player') this.playerHand.push(card);
+      else this.dealerHand.push(card);
+      this._emit();
+    }
+
     this.canDouble = this.playerChips >= this.bet;
 
     const playerBJ = isBlackjack(this.playerHand);
@@ -107,17 +166,19 @@ class Room {
 
     if (playerBJ || dealerBJ) {
       this.phase = 'dealer';
+      this.message = '딜러가 카드를 확인합니다...';
       this._resolveRound({ skipDealerDraw: true });
     } else {
       this.phase = 'player';
       this.message = '히트 또는 스탠드를 선택하세요.';
+      this._startTurnTimer();
+      this._emit();
     }
-
-    return { ok: true };
   }
 
   hit() {
     if (this.phase !== 'player') return { ok: false, error: '지금은 히트할 수 없습니다.' };
+    this._clearTurnTimer();
     this.playerHand.push(this.deck.pop());
     this.canDouble = false;
     if (isBust(this.playerHand)) {
@@ -125,12 +186,14 @@ class Room {
       this._resolveRound({ skipDealerDraw: true, playerBusted: true });
     } else {
       this.message = '히트 또는 스탠드를 선택하세요.';
+      this._startTurnTimer();
     }
     return { ok: true };
   }
 
   stand() {
     if (this.phase !== 'player') return { ok: false, error: '지금은 스탠드할 수 없습니다.' };
+    this._clearTurnTimer();
     this.phase = 'dealer';
     this._resolveRound();
     return { ok: true };
@@ -141,6 +204,7 @@ class Room {
     if (!this.canDouble || this.playerHand.length !== 2) {
       return { ok: false, error: '더블다운을 할 수 없습니다.' };
     }
+    this._clearTurnTimer();
     this.playerChips -= this.bet;
     this.bet *= 2;
     this.playerHand.push(this.deck.pop());
@@ -154,12 +218,22 @@ class Room {
     return { ok: true };
   }
 
-  _resolveRound({ skipDealerDraw = false, playerBusted = false } = {}) {
+  async _resolveRound({ skipDealerDraw = false, playerBusted = false } = {}) {
+    this.message = playerBusted ? '버스트! 딜러가 카드를 확인합니다...' : '딜러가 카드를 확인합니다...';
+    this._emit();
+    await sleep(DEALER_REVEAL_DELAY);
+    this.dealerHoleRevealed = true;
+    this._emit();
+
     if (!skipDealerDraw) {
       while (handValue(this.dealerHand) < 17) {
+        await sleep(DEALER_HIT_INTERVAL);
         this.dealerHand.push(this.deck.pop());
+        this._emit();
       }
     }
+
+    await sleep(PRE_RESULT_DELAY);
 
     const playerBJ = isBlackjack(this.playerHand);
     const dealerBJ = isBlackjack(this.dealerHand);
@@ -201,6 +275,9 @@ class Room {
     }
 
     this.playerChips += payout;
+    // 플레이어의 순증감만큼 딜러 칩은 반대로 움직인다 (플레이어가 따면 딜러는 마이너스)
+    const playerDelta = this.playerChips - this._roundStartChips;
+    this.dealerChips -= playerDelta;
     this.outcome = outcome;
     this.phase = 'result';
     this.bet = 0;
@@ -210,10 +287,13 @@ class Room {
       this.finalOutcome = 'dealer';
       this.message = '파산! 게임 종료 - 딜러 승리';
     }
+
+    this._emit();
   }
 
   getState(role) {
-    const dealerHiddenHole = this.phase === 'player';
+    const isHost = role === 'host';
+    const dealerHiddenHole = !isHost && this.dealerHand.length > 1 && !this.dealerHoleRevealed;
     const dealerHand = this.dealerHand.map((card, idx) => {
       if (dealerHiddenHole && idx === 1) {
         return { hidden: true };
@@ -233,9 +313,11 @@ class Room {
       bet: this.bet,
       startingChips: this.startingChips,
       playerChips: this.playerChips,
+      dealerChips: this.dealerChips,
       canDouble: this.canDouble,
       canCashOut,
       finalOutcome: this.finalOutcome,
+      turnDeadline: this.turnDeadline,
       playerHand: this.playerHand,
       playerValue: handValue(this.playerHand),
       dealerHand,

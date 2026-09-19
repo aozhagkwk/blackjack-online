@@ -5,13 +5,16 @@ const screenGame = document.getElementById('screen-game');
 const startError = document.getElementById('start-error');
 const gameError = document.getElementById('game-error');
 
+const table = document.getElementById('table');
 const roomCodeDisplay = document.getElementById('room-code-display');
 const roleBadge = document.getElementById('role-badge');
 const dealerCards = document.getElementById('dealer-cards');
 const playerCards = document.getElementById('player-cards');
 const dealerValueEl = document.getElementById('dealer-value');
 const playerValueEl = document.getElementById('player-value');
+const chipsLabel = document.getElementById('chips-label');
 const chipsDisplay = document.getElementById('chips-display');
+const betLabel = document.getElementById('bet-label');
 const betDisplay = document.getElementById('bet-display');
 const buyinLine = document.getElementById('buyin-line');
 const banner = document.getElementById('banner');
@@ -19,6 +22,7 @@ const bannerText = document.getElementById('banner-text');
 const gameoverModal = document.getElementById('gameover-modal');
 const gameoverTitle = document.getElementById('gameover-title');
 const gameoverDesc = document.getElementById('gameover-desc');
+const turnTimerEl = document.getElementById('turn-timer');
 
 const hostPanel = document.getElementById('host-panel');
 const betPanel = document.getElementById('bet-panel');
@@ -27,16 +31,78 @@ const inputBet = document.getElementById('input-bet');
 const chipTray = document.getElementById('chip-tray');
 const btnCashout = document.getElementById('btn-cashout');
 
-let lastPhase = null;
 let startingChipsCache = 50000;
+let currentTurnDeadline = null;
+let prevDealerCount = 0;
+let prevPlayerCount = 0;
+let prevPhase = null;
+let chipsBeforeRound = null;
+
+// ---- 사운드 (합성음, 느리게) ----
+let audioCtx = null;
+function ensureAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    else if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) {}
+}
+function beep(freq, dur, type, peak, delay) {
+  if (!audioCtx) return;
+  try {
+    const t0 = audioCtx.currentTime + (delay || 0);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(peak || 0.12, t0 + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  } catch (e) {}
+}
+function noiseSwoosh(dur) {
+  if (!audioCtx) return;
+  try {
+    dur = dur || 0.45;
+    const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    const t0 = audioCtx.currentTime;
+    filter.frequency.setValueAtTime(1200, t0);
+    filter.frequency.exponentialRampToValueAtTime(2200, t0 + dur * 0.5);
+    filter.frequency.exponentialRampToValueAtTime(600, t0 + dur);
+    filter.Q.value = 0.7;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.09, t0 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    noise.connect(filter).connect(gain).connect(audioCtx.destination);
+    noise.start(t0);
+    noise.stop(t0 + dur + 0.05);
+  } catch (e) {}
+}
+function sfxCard() { noiseSwoosh(0.45); }
+function sfxChip() { beep(1200, 0.12, 'triangle', 0.07); beep(1500, 0.1, 'triangle', 0.06, 0.06); }
+function sfxWin() { beep(520, 0.22, 'sine', 0.09); beep(700, 0.3, 'sine', 0.09, 0.2); }
+function sfxLose() { beep(180, 0.4, 'sine', 0.08); }
+function sfxPush() { beep(360, 0.22, 'sine', 0.06); }
 
 document.getElementById('btn-create').addEventListener('click', () => {
+  ensureAudio();
   clearErrors();
   const amount = parseInt(document.getElementById('input-starting-chips').value, 10);
   socket.emit('createRoom', amount);
 });
 
 document.getElementById('btn-join').addEventListener('click', () => {
+  ensureAudio();
   clearErrors();
   const code = document.getElementById('input-code').value;
   if (!code.trim()) {
@@ -88,6 +154,10 @@ document.getElementById('btn-home').addEventListener('click', () => {
   window.location.reload();
 });
 
+document.getElementById('btn-exit').addEventListener('click', () => {
+  window.location.reload();
+});
+
 socket.on('roomCreated', ({ code }) => {
   enterGameScreen(code, 'host');
 });
@@ -120,6 +190,7 @@ socket.on('state', (state) => {
 function enterGameScreen(code, role) {
   roomCodeDisplay.textContent = code;
   roleBadge.textContent = role === 'host' ? '방장 (딜러)' : '플레이어';
+  table.classList.toggle('host-view', role === 'host');
   screenStart.classList.add('hidden');
   screenGame.classList.remove('hidden');
 }
@@ -135,8 +206,9 @@ function suitClass(suit) {
 
 function renderCards(container, hand) {
   container.innerHTML = '';
-  hand.forEach((card) => {
+  hand.forEach((card, idx) => {
     const el = document.createElement('div');
+    el.style.animationDelay = `${idx * 450}ms`;
     if (card.hidden) {
       el.className = 'card hidden-card';
     } else {
@@ -173,6 +245,8 @@ function buildChipTray(startingChips, currentChips) {
     btn.textContent = fmt(v);
     btn.disabled = v > currentChips;
     btn.addEventListener('click', () => {
+      ensureAudio();
+      sfxChip();
       const current = parseInt(inputBet.value, 10) || 0;
       inputBet.value = current + v;
     });
@@ -180,15 +254,45 @@ function buildChipTray(startingChips, currentChips) {
   });
 }
 
+// 턴 타이머를 매 250ms마다 갱신 (서버 브로드캐스트를 기다리지 않고 로컬에서 카운트다운)
+setInterval(() => {
+  if (currentTurnDeadline === null) {
+    turnTimerEl.textContent = '';
+    return;
+  }
+  const remaining = Math.max(0, Math.ceil((currentTurnDeadline - Date.now()) / 1000));
+  turnTimerEl.textContent = `남은 시간 ${remaining}초`;
+  turnTimerEl.classList.toggle('urgent', remaining <= 5);
+}, 250);
+
 function render(state) {
+  const newDealerCount = state.dealerHand.length;
+  const newPlayerCount = state.playerHand.length;
+  if (newDealerCount > prevDealerCount || newPlayerCount > prevPlayerCount) {
+    sfxCard();
+  }
+  prevDealerCount = newDealerCount;
+  prevPlayerCount = newPlayerCount;
+
   renderCards(dealerCards, state.dealerHand);
   renderCards(playerCards, state.playerHand);
 
-  dealerValueEl.textContent = state.dealerValue !== null ? state.dealerValue : ' ';
-  playerValueEl.textContent = state.playerHand.length ? state.playerValue : ' ';
+  dealerValueEl.textContent = state.dealerValue !== null ? state.dealerValue : ' ';
+  playerValueEl.textContent = state.playerHand.length ? state.playerValue : ' ';
 
-  chipsDisplay.textContent = fmt(state.playerChips);
-  betDisplay.textContent = fmt(state.bet);
+  if (state.role === 'host') {
+    chipsLabel.textContent = '딜러 보유 칩';
+    chipsDisplay.textContent = fmt(state.dealerChips);
+    chipsDisplay.style.color = state.dealerChips < state.startingChips * 10 ? '#ff8b7d' : '';
+    betLabel.textContent = '플레이어 보유 칩';
+    betDisplay.textContent = fmt(state.playerChips);
+  } else {
+    chipsLabel.textContent = '보유 칩';
+    chipsDisplay.textContent = fmt(state.playerChips);
+    chipsDisplay.style.color = '';
+    betLabel.textContent = '현재 배팅';
+    betDisplay.textContent = fmt(state.bet);
+  }
   startingChipsCache = state.startingChips || startingChipsCache;
   buyinLine.textContent = `시작 금액 ${fmt(state.startingChips)}원 · 2배(${fmt(state.startingChips * 2)}원) 달성 시 칩 교환 가능`;
 
@@ -199,20 +303,38 @@ function render(state) {
   gameoverModal.classList.remove('show');
 
   if (state.phase === 'gameover') {
+    if (prevPhase !== 'gameover') {
+      if (state.role === 'player') {
+        if (state.finalOutcome === 'player') sfxWin();
+        else sfxLose();
+      }
+    }
     const isPlayerWin = state.finalOutcome === 'player';
     gameoverTitle.textContent = isPlayerWin ? 'PLAYER WIN' : 'DEALER WIN';
     gameoverDesc.textContent = state.message;
     gameoverModal.classList.add('show');
-    lastPhase = state.phase;
+    currentTurnDeadline = null;
+    prevPhase = state.phase;
     return;
   }
 
-  if (state.phase !== lastPhase && (state.phase === 'result')) {
+  if (state.phase === 'dealer' || state.phase === 'dealing' || state.phase === 'result') {
     showBanner(state.message);
   } else if (state.phase === 'player' || state.phase === 'betting') {
     hideBanner();
   }
-  lastPhase = state.phase;
+
+  if (state.phase === 'dealing' && prevPhase !== 'dealing') {
+    chipsBeforeRound = state.playerChips;
+  }
+  if (state.phase === 'result' && prevPhase !== 'result' && state.role === 'player' && chipsBeforeRound !== null) {
+    if (state.playerChips > chipsBeforeRound) sfxWin();
+    else if (state.playerChips < chipsBeforeRound) sfxLose();
+    else sfxPush();
+  }
+
+  currentTurnDeadline = state.phase === 'player' ? state.turnDeadline : null;
+  prevPhase = state.phase;
 
   if (state.role === 'host') {
     hostPanel.classList.remove('hidden');

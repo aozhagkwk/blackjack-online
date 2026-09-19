@@ -147,6 +147,17 @@ input#input-code{
   justify-content:space-between;
   padding:0 2px;
 }
+.exit-btn{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(217,180,92,.3);
+  color:#a89a7c;
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.exit-btn:active{ transform:scale(.96); }
 .room-code{ font-size:11px; color:#a89a7c; letter-spacing:.5px; }
 .room-code b{ font-family:'Space Mono',monospace; color:var(--gold-300); letter-spacing:3px; font-size:13px; }
 .role-badge{
@@ -220,6 +231,15 @@ input#input-code{
 }
 .table-filler{ flex:1; min-height:6px; }
 
+/* 기본 순서: 딜러 위 / 플레이어 아래 */
+.table-print{ order:0; }
+#dealer-zone{ order:1; }
+.table-filler{ order:2; }
+#player-zone{ order:3; }
+/* 방장(딜러) 시점: 자기 패가 아래로 오도록 순서를 뒤집는다 */
+.table.host-view #dealer-zone{ order:3; }
+.table.host-view #player-zone{ order:1; }
+
 .zone-label{
   font-size:11px;
   letter-spacing:2px;
@@ -255,7 +275,7 @@ input#input-code{
   display:flex;
   align-items:center;
   justify-content:center;
-  animation:deal .3s cubic-bezier(.18,.82,.4,1) both;
+  animation:deal .9s cubic-bezier(.18,.82,.4,1) both;
 }
 .card.red{ color:var(--red-600); }
 .card .corner{
@@ -281,7 +301,7 @@ input#input-code{
   opacity:.7;
 }
 @keyframes deal{
-  from{ opacity:0; transform:translate(30px,-24px) scale(.88) rotate(8deg); }
+  from{ opacity:0; transform:translate(70px,-55px) scale(.85) rotate(10deg); }
   to{ opacity:1; transform:translate(0,0) scale(1) rotate(0); }
 }
 
@@ -336,6 +356,16 @@ input#input-code{
 
 .dock{ display:flex; flex-direction:column; gap:10px; }
 .control-panel{ display:flex; flex-direction:column; gap:10px; }
+
+.turn-timer{
+  text-align:center;
+  font-family:'Space Mono',monospace;
+  font-size:13px;
+  font-weight:700;
+  color:var(--gold-300);
+  letter-spacing:1px;
+}
+.turn-timer.urgent{ color:#ff8b7d; }
 
 .host-note{
   text-align:center;

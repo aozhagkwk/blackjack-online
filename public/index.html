@@ -40,6 +40,7 @@
     <!-- 대기 / 게임 화면 -->
     <section id="screen-game" class="screen hidden">
       <div class="brand-row">
+        <button id="btn-exit" class="exit-btn">← 나가기</button>
         <div class="brand">블랙잭 <span class="num">ONLINE</span></div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span class="room-code">코드 <b id="room-code-display">----</b></span>
@@ -49,11 +50,11 @@
 
       <div class="display-panel">
         <div class="readout">
-          <span class="readout-label">보유 칩</span>
+          <span class="readout-label" id="chips-label">보유 칩</span>
           <span class="readout-value" id="chips-display">0</span>
         </div>
         <div class="readout right">
-          <span class="readout-label">현재 배팅</span>
+          <span class="readout-label" id="bet-label">현재 배팅</span>
           <span class="readout-value small" id="bet-display">0</span>
         </div>
       </div>
@@ -65,14 +66,14 @@
           <span class="limit" id="buyin-line">시작 금액 50,000원 · 2배 달성 시 칩 교환 가능</span>
         </div>
 
-        <div class="table-zone">
+        <div class="table-zone" id="dealer-zone">
           <div class="zone-label">DEALER <span class="score-chip" id="dealer-value">&nbsp;</span></div>
           <div id="dealer-cards" class="hand-row"></div>
         </div>
 
         <div class="table-filler"></div>
 
-        <div class="table-zone">
+        <div class="table-zone" id="player-zone">
           <div class="zone-label">PLAYER <span class="score-chip" id="player-value">&nbsp;</span></div>
           <div id="player-cards" class="hand-row"></div>
         </div>
@@ -107,6 +108,7 @@
 
         <!-- 플레이어: 히트/스탠드 -->
         <div id="action-panel" class="control-panel hidden">
+          <div id="turn-timer" class="turn-timer"></div>
           <div class="btn-row">
             <button id="btn-hit" class="btn"><span>Hit</span><small>히트</small></button>
             <button id="btn-stand" class="btn"><span>Stand</span><small>스탠드</small></button>
