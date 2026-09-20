@@ -1,0 +1,1620 @@
+<title>펠트 21</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@500;700;800&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root{
+    --felt-900:#0a2e24;
+    --felt-800:#0f3d30;
+    --felt-700:#155040;
+    --felt-line:#d9b45c;
+    --rail-950:#1c1410;
+    --rail-900:#241a14;
+    --gold-500:#d4af37;
+    --gold-300:#e9d18f;
+    --cream-100:#f3ecd9;
+    --ink-900:#1c1712;
+    --red-600:#a4342a;
+    --panel-bg:#0b0906;
+    --amber-500:#ffb238;
+    --amber-700:#7a5217;
+    --felt-shadow:rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--rail-950);
+    color:var(--cream-100);
+    font-family:'Manrope',system-ui,sans-serif;
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+  }
+  .cabinet{
+    width:100%;
+    max-width:480px;
+    min-height:100dvh;
+    background:
+      radial-gradient(120% 70% at 50% 0%, var(--rail-900), var(--rail-950) 70%);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+    padding:14px 14px calc(10px + env(safe-area-inset-bottom));
+    gap:8px;
+  }
+
+  .brand-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:2px 4px 0;
+    flex:none;
+  }
+  .brand{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-style:italic;
+    font-size:22px;
+    color:var(--gold-300);
+    letter-spacing:.3px;
+  }
+  .brand .num{ color:var(--cream-100); font-style:normal; }
+  .tagline{
+    font-size:9.5px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:#8a8073;
+  }
+
+  .display-panel{
+    background:var(--panel-bg);
+    border:1px solid #2a2119;
+    border-radius:10px;
+    padding:9px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.6);
+    flex:none;
+  }
+  .readout{ display:flex; flex-direction:column; gap:2px; }
+  .readout.right{ align-items:flex-end; }
+  .readout-label{
+    font-size:9px;
+    letter-spacing:1.5px;
+    color:var(--amber-700);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .edit-credit-btn{
+    background:none;
+    border:none;
+    color:var(--gold-300);
+    font-size:12px;
+    line-height:1;
+    padding:2px;
+    cursor:pointer;
+    letter-spacing:0;
+    text-transform:none;
+  }
+  .readout-value{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:19px;
+    color:var(--amber-500);
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 0 8px rgba(255,178,56,.35);
+  }
+  .readout-value.small{ font-size:15px; }
+  .net-line{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    font-size:10px;
+    font-family:'Space Mono',monospace;
+    margin-top:1px;
+  }
+  .net-line .net-amt.loss{ color:#e08a7d; }
+  .net-line .net-amt.profit{ color:#8fd6a8; }
+  .net-line .net-amt.zero{ color:#8a8073; }
+
+  .settings-btn{
+    background:none;
+    border:none;
+    color:#8a8073;
+    font-size:15px;
+    line-height:1;
+    padding:2px 4px;
+    cursor:pointer;
+  }
+
+  .table{
+    flex:1;
+    position:relative;
+    background:
+      radial-gradient(90% 60% at 50% 8%, var(--felt-700), var(--felt-900) 75%);
+    border:2px solid var(--felt-line);
+    border-radius:16px;
+    box-shadow:inset 0 0 40px var(--felt-shadow), inset 0 0 2px var(--felt-line);
+    padding:12px 8px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .table-print{
+    text-align:center;
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    color:rgba(233,209,143,.55);
+    line-height:1.5;
+    flex:none;
+  }
+  .table-print .big{ font-size:13px; letter-spacing:.4px; display:block; }
+  .table-print .small{ font-size:9.5px; letter-spacing:.4px; display:block; }
+  .table-print .limit{ font-size:9px; letter-spacing:.4px; display:block; margin-top:2px; opacity:.85; }
+
+  .beginner-panel{
+    flex:none;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:5px;
+    min-height:128px;
+    text-align:center;
+    font-family:'Manrope',sans-serif;
+    background:rgba(0,0,0,.34);
+    border:1px solid rgba(217,180,92,.35);
+    border-radius:10px;
+    padding:8px 8px;
+  }
+  .bp-line{ font-size:13px; font-weight:700; line-height:1.35; color:var(--cream-100); }
+  .bp-line b{ color:var(--amber-500); font-weight:800; }
+  .bp-rec{ font-size:13px; font-weight:800; color:var(--gold-300); }
+  .bp-dist-label{ font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:#a89a7c; }
+  .bp-dist-row{
+    display:flex;
+    flex-wrap:nowrap;
+    justify-content:center;
+    gap:4px;
+  }
+  .bp-dist-tile{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:1px;
+    flex:1;
+    min-width:0;
+    max-width:52px;
+    padding:3px 1px;
+    background:rgba(255,255,255,.04);
+    border-radius:6px;
+  }
+  .bp-dist-tile .lbl{ font-size:9px; font-weight:600; color:#a89a7c; letter-spacing:0; }
+  .bp-dist-tile .val{ font-size:13.5px; font-weight:800; color:var(--cream-100); font-variant-numeric:tabular-nums; }
+  .bp-dist-tile.bust{ background:rgba(224,138,125,.14); }
+  .bp-dist-tile.bust .lbl{ color:#e0a48f; }
+  .bp-dist-tile.bust .val{ color:#e08a7d; }
+
+  .table-body{ flex:1; display:flex; flex-direction:row; gap:6px; }
+
+  .stats-rail{
+    flex:none;
+    width:56px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    padding:6px 2px 4px;
+    background:rgba(0,0,0,.22);
+    border-right:1px solid rgba(217,180,92,.28);
+    border-radius:8px 0 0 8px;
+  }
+  .stats-rail-header{ flex:none; display:flex; align-items:center; justify-content:center; gap:3px; }
+  .stats-rail-title{
+    font-size:8px;
+    letter-spacing:1.5px;
+    color:#8a8073;
+    text-transform:uppercase;
+  }
+  .rail-reset-btn{ background:none; border:none; color:var(--gold-300); font-size:10px; line-height:1; padding:1px; cursor:pointer; }
+  .stats-rows{
+    flex:1;
+    min-height:0;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-evenly;
+    gap:2px;
+    overflow-y:auto;
+    scrollbar-width:none;
+  }
+  .stats-rows::-webkit-scrollbar{ display:none; }
+  .stat-row{ flex:none; text-align:center; line-height:1.2; }
+  .stat-row .lbl{ display:block; font-size:8px; color:#a89a7c; letter-spacing:.2px; }
+  .stat-row .cnt{ display:block; font-family:'Space Mono',monospace; font-size:12px; color:var(--gold-300); font-weight:700; }
+
+  .table-main{ flex:1; display:flex; flex-direction:column; gap:8px; }
+
+  .table-zone{
+    flex:none;
+    height:94px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+  }
+  .table-filler{ flex:1; min-height:0; }
+
+  .zone-label{
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:#a89a7c;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .score-chip{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    background:rgba(0,0,0,.35);
+    border:1px solid var(--felt-line);
+    color:var(--gold-300);
+    padding:1px 8px;
+    border-radius:20px;
+    min-width:20px;
+    text-align:center;
+  }
+  .hand-row{ display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:nowrap; overflow-x:visible; }
+  .hand-group{ display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
+  .hand-group.active-hand .hand-row-inner{ box-shadow:0 0 0 2px var(--gold-500); border-radius:10px; }
+  .hand-row-inner{ display:flex; padding:4px; }
+
+  .card{
+    width:46px;
+    height:64px;
+    border-radius:6px;
+    background:var(--cream-100);
+    color:var(--ink-900);
+    position:relative;
+    box-shadow:0 3px 6px rgba(0,0,0,.5);
+    border:1px solid #cfc4a4;
+    margin-left:-16px;
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .card:first-child{ margin-left:0; }
+  .card.red{ color:var(--red-600); }
+  .card.card-enter{ animation:deal .34s cubic-bezier(.18,.82,.4,1) both; }
+  .card .corner{
+    position:absolute;
+    font-size:11px;
+    font-weight:700;
+    line-height:1;
+    top:4px; left:4px;
+    text-align:center;
+  }
+  .card .corner span{ display:block; }
+  .card .corner.br{ top:auto; left:auto; bottom:4px; right:4px; transform:rotate(180deg); }
+  .card .pip{ font-size:22px; }
+  .card.back{
+    background:
+      repeating-linear-gradient(45deg, var(--felt-800), var(--felt-800) 4px, var(--felt-700) 4px, var(--felt-700) 8px);
+    border:1px solid var(--gold-500);
+  }
+  .card.back::after{
+    content:"";
+    width:26px; height:40px;
+    border:1.5px solid var(--gold-300);
+    border-radius:4px;
+    opacity:.7;
+  }
+  .card.flip-in{ animation:flipReveal .32s ease-out both; }
+  @keyframes deal{
+    from{ opacity:0; transform:translate(52px,-38px) scale(.88) rotate(10deg); }
+    to{ opacity:1; transform:translate(0,0) scale(1) rotate(0); }
+  }
+  @keyframes flipReveal{
+    from{ transform:rotateY(90deg); opacity:.3; }
+    to{ transform:rotateY(0deg); opacity:1; }
+  }
+
+  .bet-circle{
+    width:74px; height:74px;
+    border-radius:50%;
+    border:2px dashed rgba(233,209,143,.4);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace;
+    color:rgba(233,209,143,.5);
+    font-size:11px;
+    text-align:center;
+  }
+  .bet-circle .amt{ color:var(--gold-300); font-weight:700; font-size:14px; }
+
+  .banner{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    opacity:0;
+    z-index:5;
+  }
+  .banner.show{ opacity:1; animation:bannerIn .3s ease-out; pointer-events:auto; }
+  .banner-text{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-style:italic;
+    font-size:28px;
+    text-align:center;
+    padding:14px 26px;
+    border-radius:12px;
+    background:rgba(10,20,16,.85);
+    border:1px solid var(--gold-500);
+    color:var(--gold-300);
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  .banner-text .sub{
+    display:block;
+    font-family:'Manrope',sans-serif;
+    font-style:normal;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:1px;
+    color:var(--cream-100);
+    margin-top:4px;
+  }
+  @keyframes bannerIn{
+    from{ opacity:0; transform:scale(.82); }
+    to{ opacity:1; transform:scale(1); }
+  }
+
+  .modal-prompt{
+    position:absolute;
+    inset:0;
+    background:rgba(6,14,11,.9);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:14px;
+    z-index:7;
+    border-radius:14px;
+    padding:20px;
+    text-align:center;
+  }
+  .modal-prompt.show{ display:flex; }
+  .modal-prompt p{ margin:0; font-size:13px; color:var(--cream-100); line-height:1.6; }
+  .modal-prompt .title{ font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:19px; color:var(--gold-300); }
+  .modal-btns{ display:flex; gap:10px; }
+  #insuranceYes, #insuranceNo{ padding:20px 16px; font-size:15px; min-width:88px; }
+  .modal-note{ font-size:11px; color:#e0a48f; min-height:14px; }
+  .modal-close-x{
+    position:absolute;
+    top:8px; right:8px;
+    width:26px; height:26px;
+    border-radius:50%;
+    border:1px solid rgba(217,180,92,.35);
+    background:rgba(0,0,0,.3);
+    color:var(--gold-300);
+    font-size:16px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .modal-close-x:active{ transform:scale(.92); }
+
+  #creditInput{
+    background:var(--panel-bg);
+    border:1px solid var(--gold-500);
+    color:var(--amber-500);
+    font-family:'Space Mono',monospace;
+    font-size:20px;
+    text-align:center;
+    padding:10px 8px;
+    border-radius:8px;
+    width:190px;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .dock{ display:flex; flex-direction:column; gap:8px; flex:none; }
+
+  .dock-upper{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    transition:opacity .15s;
+  }
+  .dock-upper.hidden-slot{ opacity:.35; pointer-events:none; }
+
+  .quick-bet-row{ display:flex; gap:8px; justify-content:center; }
+  .mini-btn{
+    flex:1;
+    max-width:180px;
+    padding:8px 6px;
+    border-radius:8px;
+    border:1px solid var(--felt-line);
+    background:rgba(255,255,255,.04);
+    color:var(--gold-300);
+    font-family:'Manrope',sans-serif;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:.3px;
+    cursor:pointer;
+  }
+  .mini-btn span{ opacity:.55; font-weight:500; margin-left:3px; }
+  .mini-btn:disabled{ opacity:.3; cursor:not-allowed; }
+  .mini-btn:active{ transform:translateY(1px); }
+
+  .chip-tray{ display:flex; justify-content:center; gap:7px; flex-wrap:nowrap; padding:2px 0; }
+  .chip{
+    width:56px; height:56px;
+    border-radius:50%;
+    border:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    cursor:pointer;
+    color:var(--ink-900);
+    box-shadow:0 3px 0 rgba(0,0,0,.35), 0 5px 10px rgba(0,0,0,.4);
+    border:3px dashed rgba(255,255,255,.55);
+    transition:transform .08s;
+    line-height:1.1;
+  }
+  .chip:active{ transform:translateY(2px) scale(.96); box-shadow:0 1px 0 rgba(0,0,0,.35); }
+  .chip[data-v="1000"]{ background:#d7d2c8; }
+  .chip[data-v="5000"]{ background:#a4342a; color:#f3ecd9; }
+  .chip[data-v="10000"]{ background:#155040; color:#f3ecd9; }
+  .chip[data-v="25000"]{ background:#1c1712; color:var(--gold-300); }
+  .chip[data-v="100000"]{ background:#6a2d99; color:#f3ecd9; }
+  .chip:disabled{ opacity:.35; cursor:not-allowed; }
+
+  .btn-row{ display:flex; gap:8px; }
+  .btn{
+    flex:1;
+    padding:14px 6px;
+    border-radius:10px;
+    border:1px solid var(--gold-500);
+    background:linear-gradient(180deg, var(--felt-700), var(--felt-800));
+    color:var(--cream-100);
+    font-family:'Manrope',sans-serif;
+    font-weight:800;
+    font-size:13px;
+    letter-spacing:.5px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    cursor:pointer;
+  }
+  .btn small{ font-weight:500; font-size:9px; color:var(--gold-300); letter-spacing:1px; }
+  .btn:active{ transform:translateY(1px); }
+  .btn:disabled{ opacity:.3; cursor:not-allowed; }
+  .btn.primary{ background:linear-gradient(180deg, #e8c766, var(--gold-500)); color:var(--ink-900); border-color:#8a6d1f; }
+  .btn.primary small{ color:#5c4712; }
+  .btn.ghost{ background:transparent; border-color:#4a4030; color:#a89a7c; }
+  .btn.ghost small{ color:#786c54; }
+</style>
+
+<div class="cabinet">
+  <div class="brand-row">
+    <div class="brand">펠트 <span class="num">21</span></div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div class="tagline">Electronic Table &middot; No. 07</div>
+      <button class="settings-btn" id="settingsBtn" aria-label="설정">&#9881;</button>
+    </div>
+  </div>
+
+  <div class="display-panel">
+    <div class="readout">
+      <span class="readout-label">Credit <button class="edit-credit-btn" id="editCreditBtn" aria-label="크레딧 수정">&#9998;</button></span>
+      <span class="readout-value" id="creditReadout">0</span>
+      <span class="net-line"><span>손익</span><span class="net-amt zero" id="netAmt">0원</span><button class="edit-credit-btn" id="netResetBtn" aria-label="손익 초기화">&#8635;</button></span>
+    </div>
+    <div class="readout right">
+      <span class="readout-label">Bet</span>
+      <span class="readout-value small" id="betReadout">0</span>
+    </div>
+  </div>
+
+  <div class="table" id="table">
+    <div class="table-print">
+      <span class="big">BLACKJACK PAYS 3 TO 2</span>
+      <span class="small">DEALER MUST STAND ON 17 &middot; INSURANCE PAYS 2 TO 1</span>
+      <span class="limit">TABLE LIMIT 100,000 &middot; 1회 최대 배팅 100,000원</span>
+    </div>
+
+    <div class="beginner-panel" id="beginnerPanel" style="display:none;">
+      <div class="bp-line bp-main" id="bpLine1">베팅하고 카드를 받아보세요.</div>
+      <div class="bp-dist-label" id="bpDistLabel">&nbsp;</div>
+      <div class="bp-dist-row" id="bpLine2"></div>
+      <div class="bp-line bp-main" id="bpLine3">&nbsp;</div>
+      <div class="bp-line bp-rec" id="bpLine4">&nbsp;</div>
+    </div>
+
+    <div class="table-body">
+      <div class="stats-rail" id="statsRail">
+        <div class="stats-rail-header">
+          <span class="stats-rail-title">딜러</span>
+          <button class="rail-reset-btn" id="dealerStatsResetBtn" aria-label="딜러 이력 초기화">&#8635;</button>
+        </div>
+        <div class="stats-rows" id="statsRows"></div>
+      </div>
+
+      <div class="table-main">
+        <div class="table-zone" id="dealerZone">
+          <div class="zone-label">Dealer <span class="score-chip" id="dealerScore">&nbsp;</span></div>
+          <div class="hand-row" id="dealerHand"></div>
+        </div>
+
+        <div class="table-filler"></div>
+
+        <div class="table-zone" id="betZone">
+          <div class="bet-circle" id="betCircle">
+            <span>PLACE<br>BET</span>
+          </div>
+        </div>
+
+        <div class="table-zone" id="playerZone" style="display:none;">
+          <div class="hand-row" id="playerHands"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-prompt" id="insurancePrompt">
+      <div class="title">Insurance?</div>
+      <p>딜러가 에이스를 들었습니다.<br>보험금 <span id="insuranceAmt">0</span>원을 거시겠습니까?</p>
+      <div class="modal-note" id="insuranceNote"></div>
+      <div class="modal-btns">
+        <button class="btn ghost" id="insuranceNo"><span>No</span></button>
+        <button class="btn primary" id="insuranceYes"><span>Yes</span></button>
+      </div>
+    </div>
+
+    <div class="modal-prompt" id="creditEditor">
+      <div class="title" id="creditEditorTitle">크레딧 설정</div>
+      <p id="creditEditorDesc">사용할 크레딧을 입력하세요.</p>
+      <input type="number" id="creditInput" inputmode="numeric" min="0" step="1000" value="100000">
+      <div class="modal-note" id="creditEditorError"></div>
+      <div class="modal-btns">
+        <button class="btn ghost" id="creditCancelBtn"><span>취소</span></button>
+        <button class="btn primary" id="creditSaveBtn"><span>저장</span></button>
+      </div>
+    </div>
+
+    <div class="modal-prompt" id="settingsModal">
+      <button class="modal-close-x" id="settingsCloseBtn" aria-label="닫기">&times;</button>
+      <div class="title">설정</div>
+      <p>게임 진행 속도를 선택하세요.</p>
+      <div class="modal-btns">
+        <button class="btn" id="speedFastBtn"><span>빠른 모드</span></button>
+        <button class="btn" id="speedSlowBtn"><span>느린 모드</span></button>
+      </div>
+      <p>초보자 모드 (확률 안내)</p>
+      <div class="modal-btns">
+        <button class="btn" id="beginnerOffBtn"><span>끄기</span></button>
+        <button class="btn" id="beginnerOnBtn"><span>켜기</span></button>
+      </div>
+    </div>
+
+    <div class="banner" id="banner"><div class="banner-text" id="bannerText"></div></div>
+  </div>
+
+  <div class="dock">
+    <div class="dock-upper" id="dockUpper">
+      <div class="quick-bet-row">
+        <button class="mini-btn" id="rebetBtn">이전 배팅<span>REBET</span></button>
+        <button class="mini-btn" id="doubleBetBtn">×2 배팅</button>
+      </div>
+      <div class="chip-tray" id="chipTray"></div>
+    </div>
+
+    <div class="btn-row" id="bettingBtns">
+      <button class="btn ghost" id="clearBtn"><span>Clear</span><small>지우기</small></button>
+      <button class="btn primary" id="dealBtn" disabled><span>Deal</span><small>딜</small></button>
+    </div>
+
+    <div class="btn-row" id="playBtns" style="display:none;">
+      <button class="btn" id="hitBtn"><span>Hit</span><small>히트</small></button>
+      <button class="btn" id="standBtn"><span>Stand</span><small>스탠드</small></button>
+      <button class="btn" id="doubleBtn"><span>Double</span><small>더블</small></button>
+      <button class="btn" id="splitBtn"><span>Split</span><small>스플릿</small></button>
+    </div>
+
+    <div class="btn-row" id="nextBtns" style="display:none;">
+      <button class="btn primary" id="nextBtn"><span>Next Hand</span><small>다음 판</small></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SUITS = [
+    {s:'♠', color:'black'}, {s:'♥', color:'red'}, {s:'♦', color:'red'}, {s:'♣', color:'black'}
+  ];
+  var RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  var DENOMS = [1000,5000,10000,25000,100000];
+  var MAX_BET = 100000;
+  var DEALER_STAT_DEFS = [
+    {key:'blackjack', label:'블랙잭'},
+    {key:'bust', label:'버스트'},
+    {key:'21', label:'21'},
+    {key:'20', label:'20'},
+    {key:'19', label:'19'},
+    {key:'18', label:'18'},
+    {key:'17', label:'17'}
+  ];
+  var DEALER_HISTORY_LIMIT = 50;
+  var dealerHistory = [];
+
+  var TIMING = { dealStagger:110, dealerRevealDelay:400, dealerHitInterval:600, preBannerDelay:180, blackjackSettleDelay:350 };
+  var gameSpeed = 'fast';
+  function T(key){
+    var mult = gameSpeed === 'slow' ? 2 : 1;
+    return Math.round(TIMING[key] * mult);
+  }
+
+  var netResult = 0;
+  var beginnerMode = false;
+  var BEGINNER_TRIALS = 2000;
+
+  var credit = 100000;
+  var shoe = [];
+  var bet = 0;
+  var lastBet = 0;
+  var dealerCards = [];
+  var hands = [];
+  var activeHandIndex = 0;
+  var insuranceBet = 0;
+  var phase = 'betting';
+  var dealerRenderedCount = 0;
+  var dealerWasRevealed = false;
+
+  var el = {
+    credit: document.getElementById('creditReadout'),
+    betReadout: document.getElementById('betReadout'),
+    betCircle: document.getElementById('betCircle'),
+    betZone: document.getElementById('betZone'),
+    dealerZone: document.getElementById('dealerZone'),
+    dealerHand: document.getElementById('dealerHand'),
+    dealerScore: document.getElementById('dealerScore'),
+    playerZone: document.getElementById('playerZone'),
+    playerHands: document.getElementById('playerHands'),
+    dockUpper: document.getElementById('dockUpper'),
+    chipTray: document.getElementById('chipTray'),
+    bettingBtns: document.getElementById('bettingBtns'),
+    playBtns: document.getElementById('playBtns'),
+    nextBtns: document.getElementById('nextBtns'),
+    dealBtn: document.getElementById('dealBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    rebetBtn: document.getElementById('rebetBtn'),
+    doubleBetBtn: document.getElementById('doubleBetBtn'),
+    hitBtn: document.getElementById('hitBtn'),
+    standBtn: document.getElementById('standBtn'),
+    doubleBtn: document.getElementById('doubleBtn'),
+    splitBtn: document.getElementById('splitBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    banner: document.getElementById('banner'),
+    bannerText: document.getElementById('bannerText'),
+    insurancePrompt: document.getElementById('insurancePrompt'),
+    insuranceAmt: document.getElementById('insuranceAmt'),
+    insuranceNote: document.getElementById('insuranceNote'),
+    insuranceYes: document.getElementById('insuranceYes'),
+    insuranceNo: document.getElementById('insuranceNo'),
+    statsRail: document.getElementById('statsRail'),
+    statsRows: document.getElementById('statsRows'),
+    dealerStatsResetBtn: document.getElementById('dealerStatsResetBtn'),
+    netAmt: document.getElementById('netAmt'),
+    netResetBtn: document.getElementById('netResetBtn'),
+    editCreditBtn: document.getElementById('editCreditBtn'),
+    creditEditor: document.getElementById('creditEditor'),
+    creditEditorTitle: document.getElementById('creditEditorTitle'),
+    creditEditorDesc: document.getElementById('creditEditorDesc'),
+    creditInput: document.getElementById('creditInput'),
+    creditEditorError: document.getElementById('creditEditorError'),
+    creditCancelBtn: document.getElementById('creditCancelBtn'),
+    creditSaveBtn: document.getElementById('creditSaveBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsModal: document.getElementById('settingsModal'),
+    speedFastBtn: document.getElementById('speedFastBtn'),
+    speedSlowBtn: document.getElementById('speedSlowBtn'),
+    settingsCloseBtn: document.getElementById('settingsCloseBtn'),
+    beginnerPanel: document.getElementById('beginnerPanel'),
+    bpLine1: document.getElementById('bpLine1'),
+    bpDistLabel: document.getElementById('bpDistLabel'),
+    bpLine2: document.getElementById('bpLine2'),
+    bpLine3: document.getElementById('bpLine3'),
+    bpLine4: document.getElementById('bpLine4'),
+    beginnerOnBtn: document.getElementById('beginnerOnBtn'),
+    beginnerOffBtn: document.getElementById('beginnerOffBtn')
+  };
+
+  function fmt(n){ return n.toLocaleString('en-US'); }
+
+  function saveCredit(){
+    try{ localStorage.setItem('felt21_credit', String(credit)); }catch(e){}
+  }
+
+  function saveDealerHistory(){
+    try{ localStorage.setItem('felt21_dealerHistory', JSON.stringify(dealerHistory)); }catch(e){}
+  }
+
+  function renderDealerStats(){
+    var counts = {};
+    dealerHistory.forEach(function(k){ counts[k] = (counts[k]||0) + 1; });
+    el.statsRows.innerHTML = '';
+    DEALER_STAT_DEFS.forEach(function(def){
+      var row = document.createElement('div');
+      row.className = 'stat-row';
+      row.innerHTML = '<span class="lbl">'+def.label+'</span><span class="cnt">'+(counts[def.key]||0)+'x</span>';
+      el.statsRows.appendChild(row);
+    });
+  }
+
+  // records the dealer's own final hand outcome (never below 17, since the
+  // dealer must always hit on 16 or less) — a rolling window of the last 50 rounds
+  function recordDealerStat(key){
+    dealerHistory.push(key);
+    if(dealerHistory.length > DEALER_HISTORY_LIMIT) dealerHistory.shift();
+    saveDealerHistory();
+    renderDealerStats();
+  }
+
+  function saveNet(){
+    try{ localStorage.setItem('felt21_net', String(netResult)); }catch(e){}
+  }
+
+  function updateNetDisplay(){
+    var cls = netResult > 0 ? 'profit' : (netResult < 0 ? 'loss' : 'zero');
+    var sign = netResult > 0 ? '+' : (netResult < 0 ? '-' : '');
+    el.netAmt.className = 'net-amt ' + cls;
+    el.netAmt.textContent = sign + fmt(Math.abs(netResult)) + '원';
+  }
+
+  function addNet(delta){
+    netResult += delta;
+    saveNet();
+    updateNetDisplay();
+  }
+
+  // ---- sound (tiny synth, no assets) ----
+  var audioCtx = null;
+  function ensureAudio(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      else if(audioCtx.state === 'suspended') audioCtx.resume();
+    }catch(e){}
+  }
+  function beep(freq, dur, type, peak, delay){
+    if(!audioCtx) return;
+    try{
+      var t0 = audioCtx.currentTime + (delay||0);
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(peak||0.12, t0+0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0+dur+0.02);
+    }catch(e){}
+  }
+  function noiseSwoosh(dur){
+    if(!audioCtx) return;
+    try{
+      dur = dur || 0.14;
+      var bufferSize = Math.floor(audioCtx.sampleRate * dur);
+      var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      var data = buffer.getChannelData(0);
+      for(var i=0;i<bufferSize;i++){ data[i] = Math.random()*2-1; }
+      var noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      var filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      var t0 = audioCtx.currentTime;
+      filter.frequency.setValueAtTime(1700, t0);
+      filter.frequency.exponentialRampToValueAtTime(3000, t0 + dur*0.45);
+      filter.frequency.exponentialRampToValueAtTime(850, t0 + dur);
+      filter.Q.value = 0.7;
+      var gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.10, t0 + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      noise.connect(filter).connect(gain).connect(audioCtx.destination);
+      noise.start(t0);
+      noise.stop(t0 + dur + 0.02);
+    }catch(e){}
+  }
+  function sfxTick(){ ensureAudio(); beep(720,0.06,'square',0.05); }
+  function sfxCard(){ ensureAudio(); noiseSwoosh(0.14); }
+  function sfxChip(){ ensureAudio(); beep(1500,0.05,'triangle',0.07); beep(1900,0.045,'triangle',0.06,0.025); beep(2300,0.04,'triangle',0.05,0.05); }
+  function sfxWin(){ ensureAudio(); beep(660,0.09,'sine',0.09); beep(880,0.13,'sine',0.09,0.09); }
+  function sfxLose(){ ensureAudio(); beep(220,0.18,'sine',0.08); }
+  function sfxPush(){ ensureAudio(); beep(440,0.09,'sine',0.06); }
+
+  function buildDeck(){
+    var s = [];
+    for(var i=0;i<SUITS.length;i++){
+      for(var j=0;j<RANKS.length;j++){
+        s.push({rank:RANKS[j], suit:SUITS[i].s, color:SUITS[i].color});
+      }
+    }
+    for(var k=s.length-1;k>0;k--){
+      var m = Math.floor(Math.random()*(k+1));
+      var t = s[k]; s[k]=s[m]; s[m]=t;
+    }
+    return s;
+  }
+
+  function drawCard(){
+    if(shoe.length === 0) shoe = buildDeck();
+    return shoe.pop();
+  }
+
+  function cardValue(rank){
+    if(rank === 'A') return 11;
+    if(rank === 'J' || rank === 'Q' || rank === 'K') return 10;
+    return parseInt(rank,10);
+  }
+
+  function handValue(cards){
+    var total = 0, aces = 0;
+    for(var i=0;i<cards.length;i++){
+      total += cardValue(cards[i].rank);
+      if(cards[i].rank === 'A') aces++;
+    }
+    while(total > 21 && aces > 0){ total -= 10; aces--; }
+    var soft = aces > 0 && total <= 21;
+    return {value: total, soft: soft};
+  }
+
+  function isBlackjack(cards){
+    return cards.length === 2 && handValue(cards).value === 21;
+  }
+
+  // ---- beginner-mode probability helpers ----
+  // "unknown" pool = undrawn shoe cards + the dealer's hole card (still hidden from the player)
+  function unknownPool(){
+    var pool = shoe.slice();
+    if(dealerCards.length > 1 && !dealerWasRevealed) pool.push(dealerCards[1]);
+    return pool;
+  }
+
+  function bustProbIfHit(handCards, pool){
+    if(pool.length === 0) return 0;
+    var counts = {};
+    pool.forEach(function(c){ counts[c.rank] = (counts[c.rank]||0) + 1; });
+    var bustCount = 0;
+    Object.keys(counts).forEach(function(r){
+      var testVal = handValue(handCards.concat([{rank:r}])).value;
+      if(testVal > 21) bustCount += counts[r];
+    });
+    return bustCount / pool.length;
+  }
+
+  // Monte Carlo estimate of the dealer's final outcome, marginalizing over the
+  // hidden hole card too (drawn from the same unknown pool as any future card)
+  function simulateDealerOutcome(pool){
+    var deck = pool.slice();
+    for(var i=deck.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+    }
+    var cards = [dealerCards[0]];
+    var idx = 0;
+    cards.push(deck[idx++]);
+    while(handValue(cards).value < 17 && idx < deck.length){
+      cards.push(deck[idx++]);
+    }
+    var v = handValue(cards).value;
+    return v > 21 ? 'bust' : String(v);
+  }
+
+  function computeBeginnerInfo(){
+    var hand = currentHand();
+    if(!hand) return null;
+    var myVal = handValue(hand.cards).value;
+    if(myVal > 21) return null;
+    var pool = unknownPool();
+    if(pool.length === 0) return null;
+
+    var bustPct = bustProbIfHit(hand.cards, pool) * 100;
+
+    var outcomeCounts = {bust:0,'17':0,'18':0,'19':0,'20':0,'21':0};
+    for(var t=0; t<BEGINNER_TRIALS; t++){
+      var o = simulateDealerOutcome(pool);
+      outcomeCounts[o] = (outcomeCounts[o]||0) + 1;
+    }
+    var winP = 0, pushP = 0, loseP = 0;
+    Object.keys(outcomeCounts).forEach(function(k){
+      var p = outcomeCounts[k] / BEGINNER_TRIALS;
+      if(k === 'bust'){ winP += p; }
+      else {
+        var v = parseInt(k,10);
+        if(v < myVal) winP += p;
+        else if(v === myVal) pushP += p;
+        else loseP += p;
+      }
+    });
+
+    return {
+      bustPct: bustPct,
+      winPct: winP*100,
+      pushPct: pushP*100,
+      losePct: loseP*100,
+      dealerDist: {
+        bust: outcomeCounts.bust/BEGINNER_TRIALS*100,
+        17: outcomeCounts['17']/BEGINNER_TRIALS*100,
+        18: outcomeCounts['18']/BEGINNER_TRIALS*100,
+        19: outcomeCounts['19']/BEGINNER_TRIALS*100,
+        20: outcomeCounts['20']/BEGINNER_TRIALS*100,
+        21: outcomeCounts['21']/BEGINNER_TRIALS*100
+      }
+    };
+  }
+
+  function setBeginnerLines(l1, distLabel, distTilesHTML, l3, l4){
+    el.bpLine1.innerHTML = l1;
+    el.bpDistLabel.innerHTML = distLabel;
+    el.bpLine2.innerHTML = distTilesHTML;
+    el.bpLine3.innerHTML = l3;
+    el.bpLine4.innerHTML = l4;
+  }
+
+  function distTile(label, pct, isBust){
+    return '<div class="bp-dist-tile' + (isBust?' bust':'') + '"><span class="lbl">' + label + '</span><span class="val">' + pct.toFixed(0) + '%</span></div>';
+  }
+
+  function updateBeginnerPanel(){
+    if(!beginnerMode) return;
+    if(phase !== 'player-turn'){ return; }
+    var info = computeBeginnerInfo();
+    if(!info){ setBeginnerLines('계산 중...', '&nbsp;', '', '&nbsp;', '&nbsp;'); return; }
+    var rec;
+    if(info.winPct >= 50) rec = '스탠드가 유리해 보여요';
+    else if(info.bustPct <= 40) rec = '히트가 유리해 보여요';
+    else rec = '애매한 상황이에요, 신중히 선택하세요';
+
+    var d = info.dealerDist;
+    var tiles =
+      distTile('버스트', d.bust, true) +
+      distTile('17', d[17]) +
+      distTile('18', d[18]) +
+      distTile('19', d[19]) +
+      distTile('20', d[20]) +
+      distTile('21', d[21]);
+
+    setBeginnerLines(
+      '히트 시 버스트 확률 <b>' + info.bustPct.toFixed(1) + '%</b>',
+      '딜러가 최종적으로 받을 패',
+      tiles,
+      '스탠드 시 승 <b>' + info.winPct.toFixed(1) + '%</b> · 무 ' + info.pushPct.toFixed(1) + '% · 패 ' + info.losePct.toFixed(1) + '%',
+      rec
+    );
+  }
+
+  function renderCard(card, faceDown, isNew, delayMs){
+    var div = document.createElement('div');
+    div.className = 'card' + (faceDown ? ' back' : (card.color === 'red' ? ' red' : '')) + (isNew ? ' card-enter' : '');
+    if(isNew && delayMs) div.style.animationDelay = delayMs + 'ms';
+    if(!faceDown){
+      div.innerHTML =
+        '<div class="corner"><span>'+card.rank+'</span><span>'+card.suit+'</span></div>' +
+        '<div class="pip">'+card.suit+'</div>' +
+        '<div class="corner br"><span>'+card.rank+'</span><span>'+card.suit+'</span></div>';
+    }
+    return div;
+  }
+
+  function updateReadouts(){
+    el.credit.textContent = fmt(credit);
+    el.betReadout.textContent = fmt(bet);
+  }
+
+  function renderBetCircle(){
+    if(bet > 0){
+      el.betCircle.innerHTML = '<span class="amt">'+fmt(bet)+'</span>';
+    } else {
+      el.betCircle.innerHTML = '<span>PLACE<br>BET</span>';
+    }
+  }
+
+  function renderDealer(revealHole, dealSlotStart){
+    el.dealerHand.innerHTML = '';
+    var slotStart = dealSlotStart || 0;
+    var justRevealed = revealHole && !dealerWasRevealed;
+    for(var i=0;i<dealerCards.length;i++){
+      var faceDown = (i === 1 && !revealHole);
+      var isNew = i >= dealerRenderedCount;
+      var card = renderCard(dealerCards[i], faceDown, isNew, isNew ? ((i-dealerRenderedCount)*2 + slotStart)*T('dealStagger') : 0);
+      if(i === 1 && justRevealed) card.classList.add('flip-in');
+      el.dealerHand.appendChild(card);
+    }
+    dealerRenderedCount = dealerCards.length;
+    if(revealHole) dealerWasRevealed = true;
+    if(revealHole){
+      el.dealerScore.textContent = handValue(dealerCards).value;
+    } else if(dealerCards.length){
+      el.dealerScore.textContent = cardValue(dealerCards[0].rank) === 11 ? 'A' : cardValue(dealerCards[0].rank);
+    } else {
+      el.dealerScore.innerHTML = '&nbsp;';
+    }
+  }
+
+  function renderPlayerHands(dealSlotStart){
+    var slotStart = dealSlotStart || 0;
+    el.playerHands.innerHTML = '';
+    for(var h=0; h<hands.length; h++){
+      var hand = hands[h];
+      var group = document.createElement('div');
+      group.className = 'hand-group' + (h === activeHandIndex && phase === 'player-turn' ? ' active-hand' : '');
+
+      var label = document.createElement('div');
+      label.className = 'zone-label';
+      var val = handValue(hand.cards).value;
+      var tag = hands.length > 1 ? ('H'+(h+1)+' ') : '';
+      label.innerHTML = tag + '<span class="score-chip">'+val+(val>21?' BUST':'')+'</span>' + '<span style="font-size:9px;color:var(--gold-300)">' + fmt(hand.bet) + '원</span>';
+
+      var rowInner = document.createElement('div');
+      rowInner.className = 'hand-row-inner';
+      var prevCount = hand._rendered || 0;
+      for(var c=0;c<hand.cards.length;c++){
+        var isNew = c >= prevCount;
+        rowInner.appendChild(renderCard(hand.cards[c], false, isNew, isNew ? ((c-prevCount)*2 + slotStart)*T('dealStagger') : 0));
+      }
+      hand._rendered = hand.cards.length;
+      var row = document.createElement('div');
+      row.className = 'hand-row';
+      row.appendChild(rowInner);
+
+      group.appendChild(label);
+      group.appendChild(row);
+      el.playerHands.appendChild(group);
+    }
+  }
+
+  function showBanner(text, sub){
+    el.bannerText.innerHTML = text + (sub ? '<span class="sub">'+sub+'</span>' : '');
+    el.banner.classList.add('show');
+  }
+  function hideBanner(){ el.banner.classList.remove('show'); }
+
+  function buildChipTray(){
+    el.chipTray.innerHTML = '';
+    DENOMS.forEach(function(v){
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.setAttribute('data-v', v);
+      var amtStr = fmt(v);
+      var fs = amtStr.length <= 5 ? '11.5px' : (amtStr.length === 6 ? '10.5px' : '9.5px');
+      b.innerHTML = '<span class="chip-amt" style="font-size:'+fs+'">'+amtStr+'</span>';
+      el.chipTray.appendChild(b);
+    });
+  }
+
+  function setPhaseUI(){
+    el.dockUpper.classList.toggle('hidden-slot', phase !== 'betting');
+    el.bettingBtns.style.display = phase === 'betting' ? 'flex' : 'none';
+    el.playBtns.style.display = (phase === 'player-turn' || phase === 'dealer-turn') ? 'flex' : 'none';
+    el.nextBtns.style.display = (phase === 'result') ? 'flex' : 'none';
+    if(phase === 'dealer-turn'){
+      el.hitBtn.disabled = true;
+      el.standBtn.disabled = true;
+      el.doubleBtn.disabled = true;
+      el.splitBtn.disabled = true;
+    }
+    el.betZone.style.display = (phase === 'betting') ? 'flex' : 'none';
+    el.playerZone.style.display = (phase === 'betting') ? 'none' : 'flex';
+    el.dealerZone.style.display = (phase === 'betting') ? 'none' : 'flex';
+
+    Array.prototype.forEach.call(el.chipTray.children, function(chip){
+      var v = parseInt(chip.getAttribute('data-v'),10);
+      chip.disabled = (v > credit - bet) || (bet + v > MAX_BET) || phase !== 'betting';
+    });
+    el.dealBtn.disabled = bet <= 0 || bet > credit || bet > MAX_BET;
+    el.rebetBtn.disabled = !(phase === 'betting' && lastBet > 0 && lastBet <= credit && lastBet <= MAX_BET);
+    el.doubleBetBtn.disabled = !(phase === 'betting' && bet > 0 && bet*2 <= credit && bet*2 <= MAX_BET);
+  }
+
+  function resetTable(){
+    bet = 0;
+    dealerCards = [];
+    hands = [];
+    activeHandIndex = 0;
+    insuranceBet = 0;
+    dealerRenderedCount = 0;
+    dealerWasRevealed = false;
+    phase = 'betting';
+    hideBanner();
+    el.insurancePrompt.classList.remove('show');
+    el.dealerHand.innerHTML = '';
+    el.playerHands.innerHTML = '';
+    el.dealerScore.innerHTML = '&nbsp;';
+    renderBetCircle();
+    updateReadouts();
+    setPhaseUI();
+    if(beginnerMode) setBeginnerLines('베팅하고 카드를 받아보세요.', '&nbsp;', '', '&nbsp;', '&nbsp;');
+  }
+
+  el.chipTray.addEventListener('click', function(e){
+    var chip = e.target.closest('.chip');
+    if(!chip || chip.disabled) return;
+    var v = parseInt(chip.getAttribute('data-v'),10);
+    if(v > credit - bet || bet + v > MAX_BET) return;
+    sfxChip();
+    bet += v;
+    renderBetCircle();
+    updateReadouts();
+    setPhaseUI();
+  });
+
+  el.rebetBtn.addEventListener('click', function(){
+    if(el.rebetBtn.disabled) return;
+    sfxChip();
+    bet = lastBet;
+    renderBetCircle();
+    updateReadouts();
+    setPhaseUI();
+  });
+
+  el.doubleBetBtn.addEventListener('click', function(){
+    if(el.doubleBetBtn.disabled) return;
+    sfxChip();
+    bet *= 2;
+    renderBetCircle();
+    updateReadouts();
+    setPhaseUI();
+  });
+
+  el.clearBtn.addEventListener('click', function(){
+    if(phase !== 'betting') return;
+    sfxTick();
+    bet = 0;
+    renderBetCircle();
+    updateReadouts();
+    setPhaseUI();
+  });
+
+  el.dealBtn.addEventListener('click', function(){
+    if(bet <= 0 || bet > credit) return;
+    sfxTick();
+    startRound();
+  });
+
+  function startRound(){
+    lastBet = bet;
+    credit -= bet;
+    shoe = buildDeck();
+    dealerCards = [drawCard(), drawCard()];
+    hands = [{ cards:[drawCard(), drawCard()], bet: bet, done:false, result:null, isSplitAces:false, doubled:false, _rendered:0 }];
+    activeHandIndex = 0;
+    phase = 'player-turn';
+    updateReadouts();
+    renderDealer(false, 1);
+    renderPlayerHands(0);
+    setPhaseUI();
+    for(var i=0;i<4;i++){ (function(idx){ setTimeout(sfxCard, idx*T('dealStagger')); })(i); }
+
+    var dealerUp = dealerCards[0];
+    var dealerUpVal = cardValue(dealerUp.rank);
+    var playerBJ = isBlackjack(hands[0].cards);
+
+    if(dealerUp.rank === 'A'){
+      insuranceBet = Math.floor(bet/2);
+      el.insuranceAmt.textContent = fmt(insuranceBet);
+      var canAfford = insuranceBet <= credit;
+      el.insuranceYes.disabled = !canAfford;
+      el.insuranceNote.textContent = canAfford ? '' : '크레딧이 부족해 보험에 가입할 수 없습니다.';
+      el.insurancePrompt.classList.add('show');
+      return;
+    }
+
+    if(dealerUpVal === 10){
+      var dealerBJ = isBlackjack(dealerCards);
+      if(dealerBJ){ return settleDealerBlackjack(); }
+    }
+
+    if(playerBJ){ return settlePlayerBlackjack(); }
+    updateActionAvailability();
+  }
+
+  el.insuranceYes.addEventListener('click', function(){
+    if(el.insuranceYes.disabled) return;
+    sfxTick();
+    credit -= insuranceBet;
+    updateReadouts();
+    el.insurancePrompt.classList.remove('show');
+    resolveDealerPeek();
+  });
+  el.insuranceNo.addEventListener('click', function(){
+    sfxTick();
+    insuranceBet = 0;
+    el.insurancePrompt.classList.remove('show');
+    resolveDealerPeek();
+  });
+
+  function resolveDealerPeek(){
+    var dealerBJ = isBlackjack(dealerCards);
+    if(dealerBJ){
+      if(insuranceBet > 0){ credit += insuranceBet * 3; addNet(insuranceBet * 2); }
+      return settleDealerBlackjack();
+    }
+    if(insuranceBet > 0){ addNet(-insuranceBet); }
+    if(isBlackjack(hands[0].cards)){ return settlePlayerBlackjack(); }
+    updateReadouts();
+    updateActionAvailability();
+  }
+
+  function settleDealerBlackjack(){
+    phase = 'result';
+    setTimeout(function(){
+      renderDealer(true);
+      recordDealerStat('blackjack');
+      var playerBJ = isBlackjack(hands[0].cards);
+      if(playerBJ){
+        credit += hands[0].bet;
+        hands[0].result = 'PUSH';
+        showBanner('PUSH', '딜러 블랙잭 · 무승부');
+        sfxPush();
+      } else {
+        hands[0].result = 'LOSE';
+        addNet(-hands[0].bet);
+        showBanner('DEALER BLACKJACK', '딜러 블랙잭');
+        sfxLose();
+      }
+      renderPlayerHands();
+      updateReadouts();
+      setPhaseUI();
+      saveCredit();
+    }, T('blackjackSettleDelay'));
+  }
+
+  function settlePlayerBlackjack(){
+    phase = 'result';
+    setTimeout(function(){
+      renderDealer(true);
+      var win = Math.round(hands[0].bet * 1.5);
+      credit += hands[0].bet + win;
+      addNet(win);
+      hands[0].result = 'BLACKJACK';
+      showBanner('BLACKJACK!', '3 : 2 배당 +' + fmt(win) + '원');
+      sfxWin();
+      renderPlayerHands();
+      updateReadouts();
+      setPhaseUI();
+      saveCredit();
+    }, T('blackjackSettleDelay'));
+  }
+
+  function currentHand(){ return hands[activeHandIndex]; }
+
+  // toggles the active-hand highlight on already-rendered hand groups without
+  // rebuilding any cards — rebuilding here would cancel an in-flight deal animation
+  function refreshActiveHandHighlight(){
+    var groups = el.playerHands.querySelectorAll('.hand-group');
+    groups.forEach(function(g, i){
+      g.classList.toggle('active-hand', i === activeHandIndex && phase === 'player-turn');
+    });
+  }
+
+  function updateActionAvailability(){
+    var hand = currentHand();
+    var v = handValue(hand.cards).value;
+    el.hitBtn.disabled = v >= 21 || hand.isSplitAces;
+    el.standBtn.disabled = false;
+    el.doubleBtn.disabled = !(hand.cards.length === 2 && !hand.isSplitAces && credit >= hand.bet && v < 21);
+    var canSplit = hand.cards.length === 2 && !hand.isSplitAces && hand.cards[0].rank === hand.cards[1].rank && credit >= hand.bet && hands.length < 2;
+    el.splitBtn.disabled = !canSplit;
+    refreshActiveHandHighlight();
+    updateBeginnerPanel();
+  }
+
+  el.hitBtn.addEventListener('click', function(){
+    sfxTick();
+    var hand = currentHand();
+    hand.cards.push(drawCard());
+    var v = handValue(hand.cards).value;
+    renderPlayerHands();
+    sfxCard();
+    if(v >= 21){
+      advanceOrDealer();
+    } else {
+      updateActionAvailability();
+    }
+  });
+
+  el.standBtn.addEventListener('click', function(){
+    sfxTick();
+    advanceOrDealer();
+  });
+
+  el.doubleBtn.addEventListener('click', function(){
+    sfxTick();
+    var hand = currentHand();
+    if(credit < hand.bet) return;
+    credit -= hand.bet;
+    hand.bet *= 2;
+    hand.doubled = true;
+    hand.cards.push(drawCard());
+    updateReadouts();
+    renderPlayerHands();
+    sfxCard();
+    advanceOrDealer();
+  });
+
+  el.splitBtn.addEventListener('click', function(){
+    sfxTick();
+    var hand = currentHand();
+    if(credit < hand.bet) return;
+    credit -= hand.bet;
+    var aces = hand.cards[0].rank === 'A';
+    var c2 = hand.cards.pop();
+    var newHand1 = { cards:[hand.cards[0], drawCard()], bet: hand.bet, done:false, result:null, isSplitAces:aces, doubled:false, _rendered:0 };
+    var newHand2 = { cards:[c2, drawCard()], bet: hand.bet, done:false, result:null, isSplitAces:aces, doubled:false, _rendered:0 };
+    hands = [newHand1, newHand2];
+    activeHandIndex = 0;
+    updateReadouts();
+    renderPlayerHands();
+    sfxCard();
+    if(newHand1.isSplitAces){
+      advanceOrDealer();
+    } else {
+      updateActionAvailability();
+    }
+  });
+
+  function advanceOrDealer(){
+    if(activeHandIndex < hands.length - 1){
+      activeHandIndex++;
+      var h = currentHand();
+      if(h.isSplitAces){
+        advanceOrDealer();
+        return;
+      }
+      updateActionAvailability();
+    } else {
+      runDealerTurn();
+    }
+  }
+
+  function runDealerTurn(){
+    phase = 'dealer-turn';
+    setPhaseUI();
+    var anyAlive = hands.some(function(h){ return handValue(h.cards).value <= 21; });
+    setTimeout(function(){
+      renderDealer(true);
+      if(!anyAlive){
+        setTimeout(finishRound, T('preBannerDelay'));
+        return;
+      }
+      var step = function(){
+        var dv = handValue(dealerCards);
+        if(dv.value < 17){
+          dealerCards.push(drawCard());
+          sfxCard();
+          renderDealer(true);
+          if(handValue(dealerCards).value > 21){
+            setTimeout(finishRound, T('preBannerDelay'));
+          } else {
+            setTimeout(step, T('dealerHitInterval'));
+          }
+        } else {
+          setTimeout(finishRound, T('preBannerDelay'));
+        }
+      };
+      setTimeout(step, T('dealerHitInterval'));
+    }, T('dealerRevealDelay'));
+  }
+
+  function finishRound(){
+    phase = 'result';
+    var dealerVal = handValue(dealerCards).value;
+    var dealerBust = dealerVal > 21;
+
+    recordDealerStat(dealerBust ? 'bust' : String(dealerVal));
+
+    for(var i=0;i<hands.length;i++){
+      var hand = hands[i];
+      var pv = handValue(hand.cards).value;
+      if(pv > 21){
+        hand.result = 'BUST';
+        addNet(-hand.bet);
+      } else if(dealerBust || pv > dealerVal){
+        hand.result = 'WIN';
+        credit += hand.bet * 2;
+        addNet(hand.bet);
+      } else if(pv === dealerVal){
+        hand.result = 'PUSH';
+        credit += hand.bet;
+      } else {
+        hand.result = 'LOSE';
+        addNet(-hand.bet);
+      }
+    }
+
+    renderPlayerHands();
+    updateReadouts();
+    setPhaseUI();
+    saveCredit();
+
+    var wins = hands.filter(function(h){ return h.result==='WIN'; }).length;
+    var busts = hands.filter(function(h){ return h.result==='BUST'; }).length;
+    var pushes = hands.filter(function(h){ return h.result==='PUSH'; }).length;
+    var loses = hands.filter(function(h){ return h.result==='LOSE'; }).length;
+
+    if(hands.length === 1){
+      if(hands[0].result === 'WIN'){ showBanner('YOU WIN', '+' + fmt(hands[0].bet) + '원'); sfxWin(); }
+      else if(hands[0].result === 'PUSH'){ showBanner('PUSH', '무승부'); sfxPush(); }
+      else if(hands[0].result === 'BUST'){ showBanner('BUST', '버스트'); sfxLose(); }
+      else { showBanner('DEALER WINS', ''); sfxLose(); }
+    } else {
+      var loseTotal = loses + busts;
+      if(wins === hands.length){ showBanner('YOU WIN', '두 핸드 모두 승리'); sfxWin(); }
+      else if(loseTotal === hands.length){ showBanner('DEALER WINS', ''); sfxLose(); }
+      else {
+        var parts = [];
+        if(wins > 0) parts.push(wins + '승');
+        if(pushes > 0) parts.push(pushes + '무');
+        if(loseTotal > 0) parts.push(loseTotal + '패');
+        showBanner('ROUND OVER', parts.join(' '));
+        sfxPush();
+      }
+    }
+  }
+
+  el.nextBtn.addEventListener('click', function(){
+    sfxTick();
+    resetTable();
+  });
+
+  // ---- credit editor ----
+  function openCreditEditor(isInitial){
+    el.creditEditorTitle.textContent = isInitial ? '시작 크레딧 설정' : '크레딧 수정';
+    el.creditEditorDesc.textContent = isInitial ? '이번 게임에서 사용할 시작 크레딧을 정해주세요.' : '현재 크레딧을 원하는 금액으로 바꿀 수 있습니다.';
+    el.creditInput.value = isInitial ? 100000 : credit;
+    el.creditEditorError.textContent = '';
+    el.creditCancelBtn.style.display = isInitial ? 'none' : 'flex';
+    el.creditEditor.dataset.initial = isInitial ? '1' : '0';
+    el.creditEditor.classList.add('show');
+  }
+
+  el.editCreditBtn.addEventListener('click', function(){
+    openCreditEditor(false);
+  });
+  el.creditCancelBtn.addEventListener('click', function(){
+    el.creditEditor.classList.remove('show');
+  });
+  el.creditSaveBtn.addEventListener('click', function(){
+    var val = parseInt(el.creditInput.value, 10);
+    if(isNaN(val) || val < 0){
+      el.creditEditorError.textContent = '0 이상의 숫자를 입력하세요.';
+      return;
+    }
+    sfxTick();
+    var wasInitial = el.creditEditor.dataset.initial === '1';
+    credit = val;
+    saveCredit();
+    el.creditEditor.classList.remove('show');
+    if(wasInitial){
+      shoe = buildDeck();
+      resetTable();
+    } else {
+      updateReadouts();
+      setPhaseUI();
+    }
+  });
+
+  el.dealerStatsResetBtn.addEventListener('click', function(){
+    sfxTick();
+    dealerHistory = [];
+    saveDealerHistory();
+    renderDealerStats();
+  });
+
+  el.netResetBtn.addEventListener('click', function(){
+    sfxTick();
+    netResult = 0;
+    saveNet();
+    updateNetDisplay();
+  });
+
+  function refreshSpeedButtons(){
+    el.speedFastBtn.classList.toggle('primary', gameSpeed === 'fast');
+    el.speedSlowBtn.classList.toggle('primary', gameSpeed === 'slow');
+  }
+  function refreshBeginnerButtons(){
+    el.beginnerOnBtn.classList.toggle('primary', beginnerMode === true);
+    el.beginnerOffBtn.classList.toggle('primary', beginnerMode === false);
+  }
+  function applyBeginnerMode(){
+    el.beginnerPanel.style.display = beginnerMode ? 'flex' : 'none';
+    if(beginnerMode && phase === 'player-turn'){ updateBeginnerPanel(); }
+    else if(beginnerMode){ setBeginnerLines('베팅하고 카드를 받아보세요.', '&nbsp;', '', '&nbsp;', '&nbsp;'); }
+  }
+  el.settingsBtn.addEventListener('click', function(){
+    refreshSpeedButtons();
+    refreshBeginnerButtons();
+    el.settingsModal.classList.add('show');
+  });
+  el.settingsCloseBtn.addEventListener('click', function(){
+    el.settingsModal.classList.remove('show');
+  });
+  el.speedFastBtn.addEventListener('click', function(){
+    sfxTick();
+    gameSpeed = 'fast';
+    try{ localStorage.setItem('felt21_speed', gameSpeed); }catch(e){}
+    refreshSpeedButtons();
+  });
+  el.speedSlowBtn.addEventListener('click', function(){
+    sfxTick();
+    gameSpeed = 'slow';
+    try{ localStorage.setItem('felt21_speed', gameSpeed); }catch(e){}
+    refreshSpeedButtons();
+  });
+  el.beginnerOnBtn.addEventListener('click', function(){
+    sfxTick();
+    beginnerMode = true;
+    try{ localStorage.setItem('felt21_beginner', '1'); }catch(e){}
+    refreshBeginnerButtons();
+    applyBeginnerMode();
+  });
+  el.beginnerOffBtn.addEventListener('click', function(){
+    sfxTick();
+    beginnerMode = false;
+    try{ localStorage.setItem('felt21_beginner', '0'); }catch(e){}
+    refreshBeginnerButtons();
+    applyBeginnerMode();
+  });
+
+  buildChipTray();
+
+  try{
+    var savedHistoryStr = localStorage.getItem('felt21_dealerHistory');
+    if(savedHistoryStr){
+      var parsed = JSON.parse(savedHistoryStr);
+      if(Array.isArray(parsed)) dealerHistory = parsed.slice(-DEALER_HISTORY_LIMIT);
+    }
+  }catch(e){}
+  renderDealerStats();
+
+  try{
+    var savedNetStr = localStorage.getItem('felt21_net');
+    if(savedNetStr !== null && !isNaN(parseInt(savedNetStr,10))) netResult = parseInt(savedNetStr,10);
+  }catch(e){}
+  updateNetDisplay();
+
+  try{
+    var savedSpeed = localStorage.getItem('felt21_speed');
+    if(savedSpeed === 'fast' || savedSpeed === 'slow') gameSpeed = savedSpeed;
+  }catch(e){}
+
+  try{
+    var savedBeginner = localStorage.getItem('felt21_beginner');
+    if(savedBeginner === '1') beginnerMode = true;
+  }catch(e){}
+  applyBeginnerMode();
+
+  var savedCreditStr = null;
+  try{ savedCreditStr = localStorage.getItem('felt21_credit'); }catch(e){}
+
+  if(savedCreditStr === null || isNaN(parseInt(savedCreditStr,10))){
+    openCreditEditor(true);
+  } else {
+    credit = parseInt(savedCreditStr,10);
+    shoe = buildDeck();
+    resetTable();
+  }
+})();
+</script>
