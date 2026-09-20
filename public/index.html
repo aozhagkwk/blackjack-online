@@ -64,22 +64,40 @@
         <div class="table-print">
           <span class="big">BLACKJACK PAYS 3 TO 2</span>
           <span class="small">DEALER MUST STAND ON 17</span>
-          <span class="limit" id="buyin-line">시작 금액 50,000원 · 2배 달성 시 칩 교환 가능</span>
+          <span class="limit" id="buyin-line">시작 금액 50,000원 · +-10만원 달성 시 게임 종료 가능</span>
         </div>
 
-        <div class="table-zone" id="dealer-zone">
-          <div class="zone-label">DEALER <span class="score-chip" id="dealer-value">&nbsp;</span></div>
-          <div id="dealer-cards" class="hand-row"></div>
-        </div>
+        <div class="table-body">
+          <div class="stats-rail" id="stats-rail">
+            <div class="stats-rail-title">DEALER</div>
+            <div class="stats-rows" id="stats-rows"></div>
+          </div>
 
-        <div class="table-filler"></div>
+          <div class="table-main">
+            <div class="table-zone" id="dealer-zone">
+              <div class="zone-label">DEALER <span class="score-chip" id="dealer-value">&nbsp;</span></div>
+              <div id="dealer-cards" class="hand-row"></div>
+            </div>
 
-        <div class="table-zone" id="player-zone">
-          <div class="zone-label">PLAYER <span class="score-chip" id="player-value">&nbsp;</span><span class="score-chip bet-chip hidden" id="player-bet-chip"></span></div>
-          <div id="player-cards" class="hand-row"></div>
+            <div class="table-filler"></div>
+
+            <div class="table-zone" id="player-zone">
+              <div class="zone-label">PLAYER <span class="score-chip bet-chip hidden" id="player-bet-chip"></span></div>
+              <div id="player-hands" class="player-hands"></div>
+            </div>
+          </div>
         </div>
 
         <div class="banner" id="banner"><div class="banner-text" id="banner-text"></div></div>
+
+        <div class="modal-prompt" id="insurance-modal">
+          <div class="title">Insurance?</div>
+          <p>딜러가 에이스를 들었습니다.<br>보험금 <span id="insurance-amt">0</span>원을 거시겠습니까?</p>
+          <div class="modal-btns">
+            <button class="btn ghost" id="btn-insurance-no"><span>No</span></button>
+            <button class="btn primary" id="btn-insurance-yes"><span>Yes</span></button>
+          </div>
+        </div>
 
         <div class="modal-prompt" id="gameover-modal">
           <div class="title" id="gameover-title">게임 종료</div>
@@ -105,7 +123,7 @@
             <button id="btn-clear-bet" class="mini-btn">지우기</button>
           </div>
           <button id="btn-bet" class="btn btn-primary">DEAL · 배팅하고 시작</button>
-          <button id="btn-cashout" class="btn btn-accent hidden">칩 교환 (게임 종료)</button>
+          <button id="btn-cashout" class="btn btn-accent hidden">게임 종료</button>
         </div>
 
         <!-- 플레이어: 히트/스탠드 -->
@@ -115,6 +133,7 @@
             <button id="btn-hit" class="btn"><span>Hit</span><small>히트</small></button>
             <button id="btn-stand" class="btn"><span>Stand</span><small>스탠드</small></button>
             <button id="btn-double" class="btn"><span>Double</span><small>더블다운</small></button>
+            <button id="btn-split" class="btn"><span>Split</span><small>스플릿</small></button>
           </div>
         </div>
       </div>

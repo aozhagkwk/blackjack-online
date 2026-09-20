@@ -129,9 +129,10 @@ input#input-code{
 .btn:active, .btn-primary:active, .btn-secondary:active, .btn-accent:active{ transform:scale(.97); }
 .btn:disabled{ opacity:.35; cursor:not-allowed; }
 
-.btn-primary{ background:linear-gradient(180deg, #e8c766, var(--gold-500)); color:var(--ink-900); border:1px solid #8a6d1f; }
+.btn-primary, .btn.primary{ background:linear-gradient(180deg, #e8c766, var(--gold-500)); color:var(--ink-900); border:1px solid #8a6d1f; }
 .btn-secondary{ background:#e0e0e0; color:#1a1a1a; }
 .btn-accent{ background:linear-gradient(180deg, #4fc776, #2f9e44); color:#fff; border:1px solid #1f6b2d; }
+.btn.ghost{ background:transparent; border:1px solid #4a4030; color:#a89a7c; }
 
 .error-text{
   color:#ff8b7d;
@@ -229,6 +230,42 @@ input#input-code{
 .table-print .small{ font-size:9.5px; letter-spacing:.4px; display:block; }
 .table-print .limit{ font-size:9px; letter-spacing:.4px; display:block; margin-top:2px; opacity:.85; }
 
+.table-body{ display:flex; flex-direction:row; gap:8px; flex:1; min-height:0; }
+
+.stats-rail{
+  flex:none;
+  width:52px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  padding:6px 2px;
+  background:rgba(0,0,0,.22);
+  border-right:1px solid rgba(217,180,92,.28);
+  border-radius:8px 0 0 8px;
+}
+.stats-rail-title{
+  font-size:8px;
+  letter-spacing:1.5px;
+  color:#8a8073;
+  text-transform:uppercase;
+  flex:none;
+}
+.stats-rows{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-evenly;
+  align-items:center;
+  gap:3px;
+  width:100%;
+}
+.stat-row{ text-align:center; line-height:1.2; }
+.stat-row .lbl{ display:block; font-size:8px; color:#a89a7c; letter-spacing:.2px; }
+.stat-row .cnt{ display:block; font-family:'Space Mono',monospace; font-size:12px; color:var(--gold-300); font-weight:700; }
+
+.table-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+
 .table-zone{
   display:flex;
   flex-direction:column;
@@ -240,13 +277,23 @@ input#input-code{
 .table-filler{ flex:1; min-height:6px; }
 
 /* 기본 순서: 딜러 위 / 플레이어 아래 */
-.table-print{ order:0; }
 #dealer-zone{ order:1; }
 .table-filler{ order:2; }
 #player-zone{ order:3; }
 /* 방장(딜러) 시점: 자기 패가 아래로 오도록 순서를 뒤집는다 */
 .table.host-view #dealer-zone{ order:3; }
 .table.host-view #player-zone{ order:1; }
+
+.player-hands{ display:flex; gap:10px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+.hand-group{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  padding:4px;
+  border-radius:10px;
+}
+.hand-group.active-hand{ box-shadow:0 0 0 2px var(--gold-500); }
 
 .zone-label{
   font-size:11px;

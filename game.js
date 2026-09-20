@@ -55,6 +55,7 @@ const DEALER_HIT_INTERVAL = 2600; // 딜러가 카드를 한 장씩 받는 간�
 const PRE_RESULT_DELAY = 1800; // 결과 발표 전 대기
 
 const TURN_LIMIT_MS = 15000; // 플레이어 턴 제한시간
+const CASHOUT_THRESHOLD = 100000; // 시작 금액 대비 +-10만원이면 게임 종료 가능
 
 class Room {
   constructor(code, hostId, startingChips = 50000) {
@@ -62,19 +63,24 @@ class Room {
     this.hostId = hostId;
     this.playerId = null;
     this.deck = [];
-    this.playerHand = [];
     this.dealerHand = [];
+    // hands: [{cards, bet, doubled, isSplitAces, canBeBlackjack, done}]
+    this.hands = [];
+    this.activeHandIndex = 0;
     this.startingChips = startingChips;
     this.playerChips = startingChips;
     this.dealerChips = startingChips * 10; // 딜러(방장) 보유 칩 — 플레이어 시작 금액의 10배
-    this.bet = 0;
-    // phase: waiting(플레이어 대기) | betting(배팅 대기) | dealing(카드 분배 중) | player(플레이어 턴) | dealer(딜러 턴) | result(결과) | gameover(게임 종료)
+    this.bet = 0; // 이번 판 기준 배팅액(핸드당 최초 배팅)
+    this.insuranceBet = 0;
+    // phase: waiting | betting | dealing | insurance | player | dealer | result | gameover
     this.phase = 'waiting';
     this.message = '플레이어를 기다리는 중...';
     this.canDouble = false;
+    this.canSplit = false;
     this.finalOutcome = null; // 'player' | 'dealer'
     this.dealerHoleRevealed = false;
     this.hostPeeked = false; // 방장이 "내 카드 보기"로 직접 확인했는지 (플레이어에게는 영향 없음)
+    this.dealerStats = { blackjack: 0, bust: 0, '21': 0, '20': 0, '19': 0, '18': 0, '17': 0 };
     this._roundStartChips = startingChips;
     this.turnTimer = null;
     this.turnDeadline = null;
@@ -89,9 +95,7 @@ class Room {
     this._clearTurnTimer();
     this.turnDeadline = Date.now() + TURN_LIMIT_MS;
     this.turnTimer = setTimeout(() => {
-      if (this.phase === 'player') {
-        this.stand();
-      }
+      if (this.phase === 'player') this.stand();
     }, TURN_LIMIT_MS);
   }
 
@@ -120,15 +124,21 @@ class Room {
 
   cashOut() {
     if (this.phase !== 'betting' && this.phase !== 'result') {
-      return { ok: false, error: '지금은 칩 교환을 할 수 없습니다.' };
+      return { ok: false, error: '지금은 게임을 종료할 수 없습니다.' };
     }
-    if (this.playerChips < this.startingChips * 2) {
-      return { ok: false, error: '아직 칩 교환 조건을 달성하지 못했습니다.' };
+    if (Math.abs(this.playerChips - this.startingChips) < CASHOUT_THRESHOLD) {
+      return { ok: false, error: '아직 게임 종료 조건(시작 금액 대비 ±100,000원)을 달성하지 못했습니다.' };
     }
-    const profit = this.playerChips - this.startingChips;
     this.phase = 'gameover';
-    this.finalOutcome = 'player';
-    this.message = `게임 종료! 플레이어 승리 (획득 +${profit.toLocaleString('ko-KR')}원, 최종 보유 ${this.playerChips.toLocaleString('ko-KR')}원)`;
+    if (this.playerChips >= this.startingChips) {
+      const profit = this.playerChips - this.startingChips;
+      this.finalOutcome = 'player';
+      this.message = `게임 종료! 플레이어 승리 (획득 +${profit.toLocaleString('ko-KR')}원, 최종 보유 ${this.playerChips.toLocaleString('ko-KR')}원)`;
+    } else {
+      const loss = this.startingChips - this.playerChips;
+      this.finalOutcome = 'dealer';
+      this.message = `게임 종료! 딜러 승리 (플레이어 ${loss.toLocaleString('ko-KR')}원 손실, 최종 보유 ${this.playerChips.toLocaleString('ko-KR')}원)`;
+    }
     return { ok: true };
   }
 
@@ -155,49 +165,91 @@ class Room {
 
   async _dealCards() {
     this.deck = createShuffledDeck();
-    this.playerHand = [];
     this.dealerHand = [];
+    this.hands = [
+      { cards: [], bet: this.bet, doubled: false, isSplitAces: false, canBeBlackjack: true, done: false },
+    ];
+    this.activeHandIndex = 0;
     this.dealerHoleRevealed = false;
     this.hostPeeked = false;
+    this.insuranceBet = 0;
+    this.canDouble = false;
+    this.canSplit = false;
     this._emit();
 
     const order = ['player', 'dealer', 'player', 'dealer'];
     for (const who of order) {
       await sleep(INITIAL_DEAL_INTERVAL);
       const card = this.deck.pop();
-      if (who === 'player') this.playerHand.push(card);
+      if (who === 'player') this.hands[0].cards.push(card);
       else this.dealerHand.push(card);
       this._emit();
     }
 
-    this.canDouble = this.playerChips >= this.bet;
+    const dealerUp = this.dealerHand[0];
+    if (dealerUp.rank === 'A') {
+      this.phase = 'insurance';
+      this.message = '딜러가 에이스를 보여줍니다. 인슈어런스를 선택하세요.';
+      this._emit();
+      return;
+    }
 
-    const playerBJ = isBlackjack(this.playerHand);
+    this._afterDealPeek();
+  }
+
+  insuranceDecision(wantsInsurance) {
+    if (this.phase !== 'insurance') {
+      return { ok: false, error: '지금은 인슈어런스를 선택할 수 없습니다.' };
+    }
+    if (wantsInsurance) {
+      const cost = Math.floor(this.bet / 2);
+      if (cost > this.playerChips) {
+        return { ok: false, error: '칩이 부족합니다.' };
+      }
+      this.insuranceBet = cost;
+      this.playerChips -= cost;
+    }
+    this._afterDealPeek();
+    return { ok: true };
+  }
+
+  _afterDealPeek() {
     const dealerBJ = isBlackjack(this.dealerHand);
 
-    if (playerBJ || dealerBJ) {
+    if (this.insuranceBet > 0 && dealerBJ) {
+      this.playerChips += this.insuranceBet * 3; // 원금 + 2:1 배당
+    }
+
+    const hand0 = this.hands[0];
+    const playerBJ = hand0.canBeBlackjack && isBlackjack(hand0.cards);
+
+    if (dealerBJ || playerBJ) {
       this.phase = 'dealer';
       this.message = '딜러가 카드를 확인합니다...';
-      this._resolveRound({ skipDealerDraw: true });
-    } else {
-      this.phase = 'player';
-      this.message = '히트 또는 스탠드를 선택하세요.';
-      this._startTurnTimer();
-      this._emit();
+      this._resolveImmediate({ dealerBJ, playerBJ });
+      return;
     }
+
+    this.canDouble = this.playerChips >= hand0.bet;
+    this.canSplit = hand0.cards[0].rank === hand0.cards[1].rank && this.playerChips >= hand0.bet;
+    this.phase = 'player';
+    this.message = '히트 또는 스탠드를 선택하세요.';
+    this._startTurnTimer();
+    this._emit();
   }
 
   hit() {
     if (this.phase !== 'player') return { ok: false, error: '지금은 히트할 수 없습니다.' };
+    const hand = this.hands[this.activeHandIndex];
+    if (hand.isSplitAces) return { ok: false, error: '스플릿 에이스는 카드를 추가할 수 없습니다.' };
     this._clearTurnTimer();
-    this.playerHand.push(this.deck.pop());
-    this.canDouble = false;
-    if (isBust(this.playerHand)) {
-      this.phase = 'dealer';
-      this._resolveRound({ skipDealerDraw: true, playerBusted: true });
+    hand.cards.push(this.deck.pop());
+    if (handValue(hand.cards) >= 21) {
+      this._advanceHand();
     } else {
-      this.message = '히트 또는 스탠드를 선택하세요.';
+      this.message = this.hands.length > 1 ? `히트 또는 스탠드를 선택하세요. (핸드 ${this.activeHandIndex + 1}/${this.hands.length})` : '히트 또는 스탠드를 선택하세요.';
       this._startTurnTimer();
+      this._emit();
     }
     return { ok: true };
   }
@@ -205,38 +257,127 @@ class Room {
   stand() {
     if (this.phase !== 'player') return { ok: false, error: '지금은 스탠드할 수 없습니다.' };
     this._clearTurnTimer();
-    this.phase = 'dealer';
-    this._resolveRound();
+    this._advanceHand();
     return { ok: true };
   }
 
   doubleDown() {
     if (this.phase !== 'player') return { ok: false, error: '지금은 더블다운할 수 없습니다.' };
-    if (!this.canDouble || this.playerHand.length !== 2) {
+    const hand = this.hands[this.activeHandIndex];
+    const val = handValue(hand.cards);
+    if (hand.cards.length !== 2 || hand.isSplitAces || val >= 21 || this.playerChips < hand.bet) {
       return { ok: false, error: '더블다운을 할 수 없습니다.' };
     }
     this._clearTurnTimer();
-    this.playerChips -= this.bet;
-    this.bet *= 2;
-    this.playerHand.push(this.deck.pop());
-    this.canDouble = false;
-    this.phase = 'dealer';
-    if (isBust(this.playerHand)) {
-      this._resolveRound({ skipDealerDraw: true, playerBusted: true });
+    this.playerChips -= hand.bet;
+    hand.bet *= 2;
+    hand.doubled = true;
+    hand.cards.push(this.deck.pop());
+    this._advanceHand();
+    return { ok: true };
+  }
+
+  split() {
+    if (this.phase !== 'player') return { ok: false, error: '지금은 스플릿할 수 없습니다.' };
+    if (this.hands.length >= 2) return { ok: false, error: '스플릿은 한 번만 가능합니다.' };
+    const hand = this.hands[this.activeHandIndex];
+    if (hand.cards.length !== 2 || hand.cards[0].rank !== hand.cards[1].rank) {
+      return { ok: false, error: '같은 숫자 카드만 스플릿할 수 있습니다.' };
+    }
+    if (this.playerChips < hand.bet) {
+      return { ok: false, error: '칩이 부족합니다.' };
+    }
+
+    this._clearTurnTimer();
+    this.playerChips -= hand.bet;
+    const isAces = hand.cards[0].rank === 'A';
+    const secondCard = hand.cards.pop();
+    hand.cards.push(this.deck.pop());
+    hand.isSplitAces = isAces;
+    hand.canBeBlackjack = false;
+
+    const newHand = {
+      cards: [secondCard, this.deck.pop()],
+      bet: hand.bet,
+      doubled: false,
+      isSplitAces: isAces,
+      canBeBlackjack: false,
+      done: false,
+    };
+    this.hands.push(newHand);
+    this.canSplit = false;
+    this.activeHandIndex = 0;
+    this._emit();
+
+    if (isAces) {
+      // 스플릿 에이스는 각 핸드가 카드 1장만 받고 자동으로 종료된다.
+      this._advanceHand();
     } else {
-      this._resolveRound();
+      this.canDouble = this.playerChips >= this.hands[0].bet && handValue(this.hands[0].cards) < 21;
+      this.message = `히트 또는 스탠드를 선택하세요. (핸드 1/2)`;
+      this._startTurnTimer();
+      this._emit();
     }
     return { ok: true };
   }
 
-  async _resolveRound({ skipDealerDraw = false, playerBusted = false } = {}) {
-    this.message = playerBusted ? '버스트! 딜러가 카드를 확인합니다...' : '딜러가 카드를 확인합니다...';
+  _advanceHand() {
+    this.hands[this.activeHandIndex].done = true;
+    const next = this.activeHandIndex + 1;
+    if (next < this.hands.length) {
+      this.activeHandIndex = next;
+      const nextHand = this.hands[next];
+      if (nextHand.isSplitAces) {
+        this._advanceHand();
+        return;
+      }
+      this.canDouble = this.playerChips >= nextHand.bet && handValue(nextHand.cards) < 21;
+      this.message = `히트 또는 스탠드를 선택하세요. (핸드 ${next + 1}/${this.hands.length})`;
+      this._startTurnTimer();
+      this._emit();
+      return;
+    }
+
+    this.phase = 'dealer';
+    this._resolveRound();
+  }
+
+  async _resolveImmediate({ dealerBJ, playerBJ }) {
+    this._emit();
+    await sleep(DEALER_REVEAL_DELAY);
+    this.dealerHoleRevealed = true;
+    this._emit();
+    await sleep(PRE_RESULT_DELAY);
+
+    const hand0 = this.hands[0];
+    let payout = 0;
+    if (playerBJ && dealerBJ) {
+      payout = hand0.bet;
+      this.message = '둘 다 블랙잭! 푸시 (배팅금 반환)';
+    } else if (playerBJ) {
+      payout = Math.floor(hand0.bet * 2.5); // 원금 + 1.5배
+      this.message = '블랙잭! 승리 (3:2 배당)';
+    } else {
+      payout = 0;
+      this.message = '딜러 블랙잭! 패배';
+    }
+
+    if (dealerBJ) this._recordDealerStat('blackjack');
+
+    this.playerChips += payout;
+    this._finishRound();
+  }
+
+  async _resolveRound() {
+    this.message = '딜러가 카드를 확인합니다...';
     this._emit();
     await sleep(DEALER_REVEAL_DELAY);
     this.dealerHoleRevealed = true;
     this._emit();
 
-    if (!skipDealerDraw) {
+    const anyAlive = this.hands.some((h) => handValue(h.cards) <= 21);
+
+    if (anyAlive) {
       while (handValue(this.dealerHand) < 17) {
         await sleep(DEALER_HIT_INTERVAL);
         this.dealerHand.push(this.deck.pop());
@@ -246,52 +387,52 @@ class Room {
 
     await sleep(PRE_RESULT_DELAY);
 
-    const playerBJ = isBlackjack(this.playerHand);
-    const dealerBJ = isBlackjack(this.dealerHand);
-    const playerVal = handValue(this.playerHand);
     const dealerVal = handValue(this.dealerHand);
+    const dealerBusted = dealerVal > 21;
 
-    let outcome; // 'player_blackjack' | 'push' | 'player_win' | 'dealer_win'
-    let payout = 0;
+    let totalPayout = 0;
+    const parts = [];
+    this.hands.forEach((hand, idx) => {
+      const val = handValue(hand.cards);
+      const tag = this.hands.length > 1 ? `핸드${idx + 1} ` : '';
+      if (val > 21) {
+        parts.push(`${tag}버스트 패배`);
+      } else if (dealerBusted) {
+        totalPayout += hand.bet * 2;
+        parts.push(`${tag}승리`);
+      } else if (val > dealerVal) {
+        totalPayout += hand.bet * 2;
+        parts.push(`${tag}승리`);
+      } else if (val < dealerVal) {
+        parts.push(`${tag}패배`);
+      } else {
+        totalPayout += hand.bet;
+        parts.push(`${tag}푸시`);
+      }
+    });
 
-    if (playerBusted) {
-      outcome = 'dealer_win';
-      this.message = `버스트! (${playerVal}) 딜러 승리`;
-    } else if (playerBJ && dealerBJ) {
-      outcome = 'push';
-      payout = this.bet;
-      this.message = '둘 다 블랙잭! 푸시 (배팅금 반환)';
-    } else if (playerBJ) {
-      outcome = 'player_blackjack';
-      payout = Math.floor(this.bet * 2.5); // 원금 + 1.5배
-      this.message = '블랙잭! 승리 (3:2 배당)';
-    } else if (dealerBJ) {
-      outcome = 'dealer_win';
-      this.message = '딜러 블랙잭! 패배';
-    } else if (isBust(this.dealerHand)) {
-      outcome = 'player_win';
-      payout = this.bet * 2;
-      this.message = `딜러 버스트! (${dealerVal}) 승리`;
-    } else if (playerVal > dealerVal) {
-      outcome = 'player_win';
-      payout = this.bet * 2;
-      this.message = `승리! (${playerVal} vs ${dealerVal})`;
-    } else if (playerVal < dealerVal) {
-      outcome = 'dealer_win';
-      this.message = `패배 (${playerVal} vs ${dealerVal})`;
-    } else {
-      outcome = 'push';
-      payout = this.bet;
-      this.message = `푸시 (${playerVal} vs ${dealerVal})`;
+    if (anyAlive) {
+      this._recordDealerStat(dealerBusted ? 'bust' : String(dealerVal));
     }
 
-    this.playerChips += payout;
-    // 플레이어의 순증감만큼 딜러 칩은 반대로 움직인다 (플레이어가 따면 딜러는 마이너스)
+    this.message = `${parts.join(' · ')} (딜러 ${dealerBusted ? '버스트' : dealerVal})`;
+    this.playerChips += totalPayout;
+    this._finishRound();
+  }
+
+  _recordDealerStat(key) {
+    if (this.dealerStats[key] !== undefined) {
+      this.dealerStats[key] += 1;
+    }
+  }
+
+  _finishRound() {
     const playerDelta = this.playerChips - this._roundStartChips;
+    // 플레이어의 순증감만큼 딜러 칩은 반대로 움직인다 (플레이어가 따면 딜러는 마이너스)
     this.dealerChips -= playerDelta;
-    this.outcome = outcome;
     this.phase = 'result';
     this.bet = 0;
+    this.insuranceBet = 0;
 
     if (this.playerChips <= 0) {
       this.phase = 'gameover';
@@ -315,7 +456,7 @@ class Room {
 
     const canCashOut =
       (this.phase === 'betting' || this.phase === 'result') &&
-      this.playerChips >= this.startingChips * 2;
+      Math.abs(this.playerChips - this.startingChips) >= CASHOUT_THRESHOLD;
 
     return {
       code: this.code,
@@ -323,17 +464,25 @@ class Room {
       phase: this.phase,
       message: this.message,
       bet: this.bet,
+      insuranceBet: this.insuranceBet,
       startingChips: this.startingChips,
       playerChips: this.playerChips,
       dealerChips: this.dealerChips,
       canDouble: this.canDouble,
+      canSplit: this.canSplit,
       canCashOut,
       finalOutcome: this.finalOutcome,
       turnDeadline: this.turnDeadline,
-      playerHand: this.playerHand,
-      playerValue: handValue(this.playerHand),
+      activeHandIndex: this.activeHandIndex,
+      hands: this.hands.map((h) => ({
+        cards: h.cards,
+        value: handValue(h.cards),
+        bet: h.bet,
+        done: h.done,
+      })),
       dealerHand,
       dealerValue: dealerHiddenHole || this.dealerHand.length === 0 ? null : handValue(this.dealerHand),
+      dealerStats: this.dealerStats,
       hasPlayer: !!this.playerId,
     };
   }

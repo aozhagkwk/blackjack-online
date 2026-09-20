@@ -9,9 +9,8 @@ const table = document.getElementById('table');
 const roomCodeDisplay = document.getElementById('room-code-display');
 const roleBadge = document.getElementById('role-badge');
 const dealerCards = document.getElementById('dealer-cards');
-const playerCards = document.getElementById('player-cards');
+const playerHandsEl = document.getElementById('player-hands');
 const dealerValueEl = document.getElementById('dealer-value');
-const playerValueEl = document.getElementById('player-value');
 const chipsLabel = document.getElementById('chips-label');
 const chipsDisplay = document.getElementById('chips-display');
 const chipsDelta = document.getElementById('chips-delta');
@@ -24,6 +23,9 @@ const gameoverModal = document.getElementById('gameover-modal');
 const gameoverTitle = document.getElementById('gameover-title');
 const gameoverDesc = document.getElementById('gameover-desc');
 const turnTimerEl = document.getElementById('turn-timer');
+const statsRows = document.getElementById('stats-rows');
+const insuranceModal = document.getElementById('insurance-modal');
+const insuranceAmt = document.getElementById('insurance-amt');
 
 const hostPanel = document.getElementById('host-panel');
 const betPanel = document.getElementById('bet-panel');
@@ -32,14 +34,25 @@ const inputBet = document.getElementById('input-bet');
 const chipTray = document.getElementById('chip-tray');
 const btnCashout = document.getElementById('btn-cashout');
 const btnPeek = document.getElementById('btn-peek');
+const btnSplit = document.getElementById('btn-split');
 const playerBetChip = document.getElementById('player-bet-chip');
 
-let startingChipsCache = 50000;
+const CHIP_DENOMS = [1000, 5000, 10000, 25000];
+const STAT_DEFS = [
+  { key: 'blackjack', label: '블랙잭' },
+  { key: 'bust', label: '버스트' },
+  { key: '21', label: '21' },
+  { key: '20', label: '20' },
+  { key: '19', label: '19' },
+  { key: '18', label: '18' },
+  { key: '17', label: '17' },
+];
+
 let currentTurnDeadline = null;
 let prevDealerCount = 0;
-let prevPlayerCount = 0;
 let prevPhase = null;
 let chipsBeforeRound = null;
+let statsBuilt = false;
 
 // ---- 사운드 (합성음, 느리게) ----
 let audioCtx = null;
@@ -148,6 +161,21 @@ document.getElementById('btn-double').addEventListener('click', () => {
   socket.emit('doubleDown');
 });
 
+btnSplit.addEventListener('click', () => {
+  clearErrors();
+  socket.emit('split');
+});
+
+document.getElementById('btn-insurance-yes').addEventListener('click', () => {
+  clearErrors();
+  socket.emit('insuranceDecision', true);
+});
+
+document.getElementById('btn-insurance-no').addEventListener('click', () => {
+  clearErrors();
+  socket.emit('insuranceDecision', false);
+});
+
 btnCashout.addEventListener('click', () => {
   clearErrors();
   socket.emit('cashOut');
@@ -231,13 +259,12 @@ function buildCardEl(card) {
 }
 
 // 이미 놓인 카드는 그대로 두고, 새로 추가되거나(슬라이드 인) 공개된(뒤집기) 카드만 움직인다.
-const cardCache = { dealer: [], player: [] };
+const cardCache = {};
 function renderCards(container, hand, cacheKey) {
-  const prevSigs = cardCache[cacheKey];
+  const prevSigs = cardCache[cacheKey] || [];
   const newSigs = hand.map(cardSignature);
 
   if (hand.length < prevSigs.length) {
-    // 새 라운드 등으로 손패 수가 줄었으면 통째로 다시 그린다.
     container.innerHTML = '';
     hand.forEach((card, idx) => {
       const el = buildCardEl(card);
@@ -289,11 +316,9 @@ function hideBanner() {
   banner.classList.remove('show');
 }
 
-function buildChipTray(startingChips, currentChips) {
-  const multiplier = startingChips / 50000;
-  const denoms = [1000, 5000, 10000, 25000].map((d) => Math.max(500, Math.round((d * multiplier) / 100) * 100));
+function buildChipTray(currentChips) {
   chipTray.innerHTML = '';
-  denoms.forEach((v, idx) => {
+  CHIP_DENOMS.forEach((v, idx) => {
     const btn = document.createElement('button');
     btn.className = `chip c${idx + 1}`;
     btn.textContent = fmt(v);
@@ -305,6 +330,57 @@ function buildChipTray(startingChips, currentChips) {
       inputBet.value = current + v;
     });
     chipTray.appendChild(btn);
+  });
+}
+
+function buildStatsRail() {
+  if (statsBuilt) return;
+  statsRows.innerHTML = '';
+  STAT_DEFS.forEach((def) => {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.id = `stat-row-${def.key}`;
+    row.innerHTML = `<span class="lbl">${def.label}</span><span class="cnt" id="stat-cnt-${def.key}">0</span>`;
+    statsRows.appendChild(row);
+  });
+  statsBuilt = true;
+}
+
+function updateStatsRail(dealerStats) {
+  buildStatsRail();
+  STAT_DEFS.forEach((def) => {
+    const el = document.getElementById(`stat-cnt-${def.key}`);
+    if (el) el.textContent = fmt((dealerStats && dealerStats[def.key]) || 0);
+  });
+}
+
+function renderHands(hands, activeHandIndex, phase) {
+  // 기존 핸드 개수보다 줄었으면(새 라운드 등) 캐시를 정리한다.
+  Object.keys(cardCache).forEach((key) => {
+    if (key.startsWith('player') && Number(key.slice(6)) >= hands.length) delete cardCache[key];
+  });
+
+  if (playerHandsEl.children.length !== hands.length) {
+    playerHandsEl.innerHTML = '';
+    hands.forEach((_, idx) => {
+      const group = document.createElement('div');
+      group.className = 'hand-group';
+      group.id = `hand-group-${idx}`;
+      group.innerHTML =
+        `<div class="zone-label">${hands.length > 1 ? `H${idx + 1}` : ''} <span class="score-chip" id="hand-value-${idx}">&nbsp;</span><span class="score-chip bet-chip" id="hand-bet-${idx}"></span></div>` +
+        `<div class="hand-row" id="hand-cards-${idx}"></div>`;
+      playerHandsEl.appendChild(group);
+    });
+  }
+
+  hands.forEach((hand, idx) => {
+    renderCards(document.getElementById(`hand-cards-${idx}`), hand.cards, `player${idx}`);
+    document.getElementById(`hand-value-${idx}`).textContent = hand.cards.length ? hand.value : ' ';
+    document.getElementById(`hand-bet-${idx}`).textContent = fmt(hand.bet);
+    document.getElementById(`hand-group-${idx}`).classList.toggle(
+      'active-hand',
+      phase === 'player' && idx === activeHandIndex
+    );
   });
 }
 
@@ -321,18 +397,14 @@ setInterval(() => {
 
 function render(state) {
   const newDealerCount = state.dealerHand.length;
-  const newPlayerCount = state.playerHand.length;
-  if (newDealerCount > prevDealerCount || newPlayerCount > prevPlayerCount) {
-    sfxCard();
-  }
+  if (newDealerCount > prevDealerCount) sfxCard();
   prevDealerCount = newDealerCount;
-  prevPlayerCount = newPlayerCount;
 
   renderCards(dealerCards, state.dealerHand, 'dealer');
-  renderCards(playerCards, state.playerHand, 'player');
+  renderHands(state.hands, state.activeHandIndex, state.phase);
 
   dealerValueEl.textContent = state.dealerValue !== null ? state.dealerValue : ' ';
-  playerValueEl.textContent = state.playerHand.length ? state.playerValue : ' ';
+  updateStatsRail(state.dealerStats);
 
   if (state.role === 'host') {
     chipsLabel.textContent = '딜러 보유 칩';
@@ -349,21 +421,19 @@ function render(state) {
     betDisplay.textContent = fmt(state.bet);
     setDelta(state.playerChips - state.startingChips);
   }
-  startingChipsCache = state.startingChips || startingChipsCache;
-  buyinLine.textContent = `시작 금액 ${fmt(state.startingChips)}원 · 2배(${fmt(state.startingChips * 2)}원) 달성 시 칩 교환 가능`;
+  buyinLine.textContent = `시작 금액 ${fmt(state.startingChips)}원 · +-${fmt(100000)}원 달성 시 게임 종료 가능`;
 
   hostPanel.classList.add('hidden');
   betPanel.classList.add('hidden');
   actionPanel.classList.add('hidden');
   btnCashout.classList.add('hidden');
   gameoverModal.classList.remove('show');
+  insuranceModal.classList.remove('show');
 
   if (state.phase === 'gameover') {
-    if (prevPhase !== 'gameover') {
-      if (state.role === 'player') {
-        if (state.finalOutcome === 'player') sfxWin();
-        else sfxLose();
-      }
+    if (prevPhase !== 'gameover' && state.role === 'player') {
+      if (state.finalOutcome === 'player') sfxWin();
+      else sfxLose();
     }
     const isPlayerWin = state.finalOutcome === 'player';
     gameoverTitle.textContent = isPlayerWin ? 'PLAYER WIN' : 'DEALER WIN';
@@ -374,7 +444,12 @@ function render(state) {
     return;
   }
 
-  if (state.phase === 'dealer' || state.phase === 'dealing' || state.phase === 'result') {
+  if (state.phase === 'insurance' && state.role === 'player') {
+    insuranceAmt.textContent = fmt(Math.floor(state.bet / 2));
+    insuranceModal.classList.add('show');
+  }
+
+  if (state.phase === 'dealer' || state.phase === 'dealing' || state.phase === 'result' || state.phase === 'insurance') {
     showBanner(state.message);
   } else if (state.phase === 'player' || state.phase === 'betting') {
     hideBanner();
@@ -410,13 +485,14 @@ function render(state) {
   if (state.phase === 'betting' || state.phase === 'result') {
     betPanel.classList.remove('hidden');
     inputBet.value = '';
-    buildChipTray(state.startingChips, state.playerChips);
+    buildChipTray(state.playerChips);
     if (state.canCashOut) {
       btnCashout.classList.remove('hidden');
     }
   } else if (state.phase === 'player') {
     actionPanel.classList.remove('hidden');
     document.getElementById('btn-double').disabled = !state.canDouble;
+    btnSplit.disabled = !state.canSplit;
   } else if (state.phase === 'waiting') {
     showBanner('방장을 기다리는 중...');
   }
